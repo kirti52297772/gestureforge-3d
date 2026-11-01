@@ -166,11 +166,8 @@ export async function inspectHeartParts() {
 export async function loadHeartComparisonModels(scene) {
 
     const files = [
-        'alm0006_a-nih3d.glb',
-        'alm0006_b-nih3d.glb',
-        'alm0006_c-nih3d.glb',
-        'alm0006_whole-nih3d.glb'
-    ];
+    'alm0006_whole-nih3d.glb'
+];
 
     const comparisonGroup = new THREE.Group();
 
@@ -215,7 +212,8 @@ export async function loadHeartComparisonModels(scene) {
         });
 
         // Place models side by side
-        model.position.x += (i - 1.5) * spacing;
+        model.position.x +=
+    (i - (files.length - 1) / 2) * spacing;
 
         comparisonGroup.add(model);
 

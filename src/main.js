@@ -272,7 +272,7 @@ const explodedView = createExplodedView({
 // 16. ROTATION CONTROL
 // ================================================
 
-let isRotating = true;
+let isRotating = false ;
 
 const rotateButton = document.querySelector('#rotate');
 
