@@ -5,7 +5,10 @@ import './style.css';
 import { createSceneManager } from './scene/sceneManager.js';
 import { createAssembly } from './scene/assembly.js';
 
-import { loadHeartModel } from './scene/heartLoader.js';
+import {
+    loadHeartModel,
+    inspectHeartParts
+} from './scene/heartLoader.js';
 
 // Features
 import { setupComponentSelection } from './features/selection.js';
@@ -68,6 +71,7 @@ loadHeartModel(scene)
         console.error('Could not load heart model:', error);
     });
 
+   // inspectHeartParts();
 
 // ================================================
 // 3. SETUP MOUSE CONTROLS
