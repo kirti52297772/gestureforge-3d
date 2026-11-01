@@ -5,6 +5,8 @@ import './style.css';
 import { createSceneManager } from './scene/sceneManager.js';
 import { createAssembly } from './scene/assembly.js';
 
+import { loadHeartModel } from './scene/heartLoader.js';
+
 // Features
 import { setupComponentSelection } from './features/selection.js';
 import { createComponentInspector } from './features/componentInspector.js';
@@ -49,6 +51,22 @@ const {
 // ================================================
 
 const { assembly, parts } = createAssembly(scene);
+
+// Load the 3D human heart model
+let heartModel = null;
+
+loadHeartModel(scene)
+    .then((heart) => {
+        heartModel = heart;
+
+        // Hide the old mechanical assembly
+        assembly.visible = false;
+
+        console.log('GestureForge Med 3D: Heart is ready!');
+    })
+    .catch((error) => {
+        console.error('Could not load heart model:', error);
+    });
 
 
 // ================================================
@@ -140,6 +158,10 @@ rotateButton.addEventListener('click', toggleRotation);
 
 function resetApplication() {
   assembly.rotation.set(0, 0, 0);
+  
+      if (heartModel) {
+        heartModel.rotation.set(0, 0, 0);
+    }
 
   explodedView.resetExplodedView();
 
@@ -382,9 +404,14 @@ function animate() {
   requestAnimationFrame(animate);
 
   // Automatic assembly rotation.
-  if (isRotating) {
-    assembly.rotation.y += 0.004;
-  }
+  // Automatic 3D model rotation.
+if (isRotating) {
+    if (heartModel) {
+        heartModel.rotation.y += 0.004;
+    } else {
+        assembly.rotation.y += 0.004;
+    }
+}
 
   // Smooth camera movement.
   if (cameraState.cameraTransition) {
