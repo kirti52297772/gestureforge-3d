@@ -1,13 +1,270 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>gestureforge-3d</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <meta
+    name="description"
+    content="GestureForge 3D - Interactive engineering and gesture-based machine exploration."
+  />
+
+  <title>GestureForge 3D | Machine Explorer</title>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- Application Header -->
+    <header class="topbar">
+      <div class="brand">
+        GESTURE<span>FORGE</span> 3D
+      </div>
+
+      <div class="system-status">
+        <span class="status-dot"></span>
+        SYSTEM ONLINE
+      </div>
+    </header>
+
+    <!-- Main Application Layout -->
+    <main class="layout">
+
+      <!-- Left: 3D Machine Explorer -->
+      <section class="main-content">
+
+        <div class="panel-heading">
+          <div class="eyebrow">
+            INTERACTIVE ENGINEERING LAB
+          </div>
+
+          <h1>Machine Explorer</h1>
+
+          <p class="subtitle">
+            Explore a 3D mechanical assembly using mouse
+            controls and hand gestures.
+          </p>
+        </div>
+
+        <!-- Three.js Viewer -->
+        <div class="viewer" id="viewer">
+
+          <div class="viewer-label">
+            3D VIEWPORT / LIVE RENDER
+          </div>
+
+          <div id="handCursor" class="hand-cursor"></div>
+
+          <!-- Gesture Recognition Overlay -->
+          <div class="gesture-panel">
+
+            <div class="gesture-panel-heading">
+              LIVE GESTURE RECOGNITION
+            </div>
+
+            <div class="gesture-status">
+              <span class="status-dot"></span>
+              <span id="trackingStatus">
+                CAMERA OFF
+              </span>
+            </div>
+
+            <div class="gesture-result">
+              <div class="gesture-label">
+                DETECTED GESTURE
+              </div>
+
+              <div id="gestureName">
+                NO HAND DETECTED
+              </div>
+            </div>
+
+            <p class="gesture-hint" id="gestureHint">
+              Enable hand tracking to begin.
+            </p>
+
+          </div>
+        </div>
+
+        <!-- Main Controls -->
+        <div class="controls">
+
+          <button class="action primary" id="rotate">
+            Pause Rotation
+          </button>
+
+          <button class="action" id="explode">
+            Exploded View
+          </button>
+
+          <button class="action" id="reset">
+            Reset View
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- Right: Information and Controls -->
+      <aside class="side">
+
+        <!-- Assembly Status -->
+        <section class="panel">
+
+          <h2>Assembly Status</h2>
+
+          <div class="metric">
+            <div class="metric-label">3D ENGINE</div>
+            <div class="metric-value" id="engineStatus">
+              INITIALIZING
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">FRAME RATE</div>
+            <div class="metric-value" id="fpsValue">
+              -- FPS
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">RENDER PERFORMANCE</div>
+            <div class="metric-value" id="renderStatus">
+              STARTING
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">SELECTED COMPONENT</div>
+            <div class="metric-value" id="selectedPart">
+              Gear Assembly
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">CONTROL MODE</div>
+            <div class="metric-value" id="controlMode">
+              MOUSE + KEYBOARD
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">HAND TRACKING</div>
+            <div class="metric-value" id="handStatus">
+              CAMERA OFF
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Component Inspector -->
+        <section class="panel">
+
+          <h2>Component Inspector</h2>
+
+          <div class="metric">
+            <div class="metric-label">COMPONENT NAME</div>
+            <div class="metric-value" id="inspectName">
+              No component selected
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">COMPONENT TYPE</div>
+            <div class="metric-value" id="inspectType">—</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">PURPOSE</div>
+            <div class="metric-value" id="inspectDescription">
+              Select a component to see its purpose.
+            </div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">POSITION (X, Y, Z)</div>
+            <div class="metric-value" id="inspectPosition">—</div>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">DIMENSIONS</div>
+            <div class="metric-value" id="inspectDimensions">—</div>
+          </div>
+
+          <div class="controls vertical-controls">
+
+            <button class="action primary" id="focusComponent">
+              Focus Component
+            </button>
+
+            <button class="action" id="clearSelection">
+              Clear Selection
+            </button>
+
+          </div>
+
+        </section>
+
+        <!-- Gesture Controls -->
+        <section class="panel">
+
+          <h2>Gesture Controls</h2>
+
+          <div class="gesture-instructions">
+            <p>✋ Open Palm — Pause / Resume Rotation</p>
+            <p>🤏 Pinch — Select Component</p>
+            <p>↔ Move Hand — Rotate Assembly</p>
+          </div>
+
+          <button class="action primary full-width" id="cameraButton">
+            Enable Hand Tracking
+          </button>
+
+          <div class="camera-preview">
+
+            <video
+              id="webcam"
+              autoplay
+              playsinline
+              muted
+            ></video>
+
+            <canvas id="handCanvas"></canvas>
+
+          </div>
+
+        </section>
+
+        <!-- Keyboard Shortcuts -->
+        <section class="panel">
+
+          <h2>Keyboard Shortcuts</h2>
+
+          <div class="shortcut-list">
+            <p><kbd>A</kbd> / <kbd>SPACE</kbd> Toggle Rotation</p>
+            <p><kbd>W</kbd> / <kbd>S</kbd> Rotate Up / Down</p>
+            <p><kbd>Q</kbd> / <kbd>D</kbd> Rotate Left / Right</p>
+            <p><kbd>+</kbd> / <kbd>-</kbd> Zoom In / Out</p>
+            <p><kbd>E</kbd> Exploded View</p>
+            <p><kbd>R</kbd> Reset View</p>
+            <p><kbd>ESC</kbd> Clear Selection</p>
+          </div>
+
+        </section>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Vite JavaScript Entry Point -->
+  <script type="module" src="/src/main.js"></script>
+
+</body>
 </html>
