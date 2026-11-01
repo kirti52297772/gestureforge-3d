@@ -1,46 +1,95 @@
+// ============================================================================
+// SURGICAL DISSECTION / EXPLODED VIEW ENGINE
+// Smoothly separates anatomical sections along surgical planes for internal inspection
+// ============================================================================
 
-export function createExplodedView({ parts, assembly, explodeButton }) {
+import * as THREE from 'three';
+
+export function createExplodedView({ explodeButton, onExplodeChange } = {}) {
   let isExploded = false;
+  let targetProgress = 0.0;
+  let currentProgress = 0.0;
+  let animId = null;
+
+  // Active list of dissectible parts: { object, originalPosition, explodeVector }
+  let activeParts = [];
+
+  function setParts(parts) {
+    activeParts = parts || [];
+    currentProgress = 0.0;
+    targetProgress = 0.0;
+    isExploded = false;
+    updateButtonLabel();
+    applyProgress(0);
+  }
 
   function toggleExplodedView() {
     isExploded = !isExploded;
+    targetProgress = isExploded ? 1.0 : 0.0;
+    updateButtonLabel();
+    startAnimation();
+    onExplodeChange?.(isExploded, targetProgress);
+    return isExploded;
+  }
 
-    parts.forEach(({ mesh, originalPosition }) => {
-      if (isExploded) {
-        const direction = originalPosition.clone();
+  function setExplodeFactor(factor) {
+    targetProgress = Math.max(0, Math.min(1.5, factor));
+    isExploded = targetProgress > 0.05;
+    updateButtonLabel();
+    startAnimation();
+  }
 
-        if (direction.length() < 0.2) {
-          direction.set(0, 1, 0);
-        }
+  function updateButtonLabel() {
+    if (explodeButton) {
+      explodeButton.textContent = isExploded ? 'Assemble Organ' : 'Dissect / Explode View';
+      explodeButton.classList.toggle('active', isExploded);
+    }
+  }
 
-        direction.normalize();
-
-        mesh.position.copy(originalPosition)
-          .add(direction.multiplyScalar(0.8));
-      } else {
-        mesh.position.copy(originalPosition);
+  function applyProgress(p) {
+    currentProgress = p;
+    activeParts.forEach(item => {
+      if (item.object && item.originalPosition && item.explodeVector) {
+        item.object.position.copy(item.originalPosition).addScaledVector(item.explodeVector, p);
       }
     });
+  }
 
-    explodeButton.textContent =
-      isExploded ? 'Reassemble Parts' : 'Exploded View';
+  function startAnimation() {
+    if (animId) cancelAnimationFrame(animId);
+
+    function step() {
+      const delta = targetProgress - currentProgress;
+      if (Math.abs(delta) < 0.005) {
+        applyProgress(targetProgress);
+        animId = null;
+        return;
+      }
+
+      applyProgress(currentProgress + delta * 0.12);
+      animId = requestAnimationFrame(step);
+    }
+
+    animId = requestAnimationFrame(step);
   }
 
   function resetExplodedView() {
     isExploded = false;
-
-    parts.forEach(({ mesh, originalPosition }) => {
-      mesh.position.copy(originalPosition);
-    });
-
-    explodeButton.textContent = 'Exploded View';
+    targetProgress = 0.0;
+    applyProgress(0.0);
+    updateButtonLabel();
   }
 
-  explodeButton.addEventListener('click', toggleExplodedView);
+  if (explodeButton) {
+    explodeButton.addEventListener('click', toggleExplodedView);
+  }
 
   return {
+    setParts,
     toggleExplodedView,
+    setExplodeFactor,
     resetExplodedView,
-    isExploded: () => isExploded
+    isExploded: () => isExploded,
+    getProgress: () => currentProgress
   };
 }

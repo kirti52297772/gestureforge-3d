@@ -1,239 +1,158 @@
+// ============================================================================
+// MEDICAL ANATOMY INSPECTOR & TELEMETRY
+// Live clinical telemetry, material highlights, camera auto-focus, and wiki integration
+// ============================================================================
 
 import * as THREE from 'three';
 
 export function createComponentInspector({
-  assembly,
-  cameraState
+  cameraState,
+  focusOn,
+  onOpenWiki,
+  onOpenCaseStudy
 }) {
-  // DOM elements.
   const inspectName = document.querySelector('#inspectName');
+  const inspectLatin = document.querySelector('#inspectLatin');
   const inspectType = document.querySelector('#inspectType');
   const inspectDescription = document.querySelector('#inspectDescription');
+  const inspectHemodynamics = document.querySelector('#inspectHemodynamics');
   const inspectPosition = document.querySelector('#inspectPosition');
   const inspectDimensions = document.querySelector('#inspectDimensions');
   const selectedPartLabel = document.querySelector('#selectedPart');
 
-  let selectedComponent = null;
-  let selectedMeshes = [];
+  const wikiBtn = document.querySelector('#inspectWikiBtn');
+  const focusBtn = document.querySelector('#focusComponent');
+  const clearBtn = document.querySelector('#clearSelection');
 
-  // Description of each mechanical component.
-  const componentDescriptions = {
-    'Upper Gear':
-      'A toothed wheel used to demonstrate rotational motion and component selection.',
+  let currentPart = null;
+  let highlightedMeshes = [];
 
-    'Middle Gear':
-      'A central gear in this demonstration model. Its teeth are grouped for selection.',
-
-    'Lower Gear':
-      'A lower toothed wheel used to demonstrate grouped selection and 3D inspection.',
-
-    'Central Shaft':
-      'A cylindrical shaft representing a component that can support or transmit rotation.',
-
-    'Central Hub':
-      'A central cylindrical feature representing a connection or support point.',
-
-    'Base Plate':
-      'The flat base representing a mounting surface for the assembly.'
-  };
-
-  // Get the component name stored in the mesh metadata.
-  function getComponentName(mesh) {
-    return (
-      mesh.userData.selectableName ||
-      mesh.userData.partName ||
-      'Machine Component'
-    );
-  }
-
-  // Restore original materials after highlighting.
-  function restorePreviousMaterials() {
-    selectedMeshes.forEach(({
-      mesh,
-      originalMaterial,
-      highlightMaterial
-    }) => {
-      mesh.material = originalMaterial;
-
-      if (Array.isArray(highlightMaterial)) {
-        highlightMaterial.forEach(material => material.dispose());
-      } else {
-        highlightMaterial.dispose();
-      }
-    });
-
-    selectedMeshes = [];
-  }
-
-  // Clear the selected component and reset inspector values.
   function clearComponentSelection() {
-    restorePreviousMaterials();
+    restoreMaterials();
+    currentPart = null;
 
-    selectedComponent = null;
+    if (selectedPartLabel) selectedPartLabel.textContent = 'None Selected';
+    if (inspectName) inspectName.textContent = 'No anatomical structure selected';
+    if (inspectLatin) inspectLatin.textContent = 'Select a part in 3D or from the side panel';
+    if (inspectType) inspectType.textContent = '—';
+    if (inspectDescription) inspectDescription.textContent = 'Explore organs in 3D using your hand gestures or mouse. Click any pin or structure to inspect clinical details.';
+    if (inspectHemodynamics) inspectHemodynamics.textContent = '—';
+    if (inspectPosition) inspectPosition.textContent = '—';
+    if (inspectDimensions) inspectDimensions.textContent = '—';
 
-    selectedPartLabel.textContent = 'Gear Assembly';
-
-    inspectName.textContent = 'No component selected';
-    inspectType.textContent = '—';
-
-    inspectDescription.textContent =
-      'Select a component to see its purpose.';
-
-    inspectPosition.textContent = '—';
-    inspectDimensions.textContent = '—';
+    if (wikiBtn) wikiBtn.disabled = true;
+    if (focusBtn) focusBtn.disabled = true;
   }
 
-  // Create highlighted copies of the original materials.
-  function createHighlightMaterial(originalMaterial) {
-    function highlightSingleMaterial(material) {
-      const highlighted = material.clone();
-
-      if (highlighted.emissive) {
-        highlighted.emissive.set('#00d9ff');
-        highlighted.emissiveIntensity = 0.65;
+  function restoreMaterials() {
+    highlightedMeshes.forEach(({ mesh, originalMaterial, highlightMaterial }) => {
+      mesh.material = originalMaterial;
+      if (highlightMaterial) {
+        if (Array.isArray(highlightMaterial)) {
+          highlightMaterial.forEach(m => m.dispose());
+        } else {
+          highlightMaterial.dispose();
+        }
       }
-
-      return highlighted;
-    }
-
-    if (Array.isArray(originalMaterial)) {
-      return originalMaterial.map(highlightSingleMaterial);
-    }
-
-    return highlightSingleMaterial(originalMaterial);
-  }
-
-  // Select and highlight a component.
-  function selectComponent(mesh) {
-    if (!mesh || !mesh.isMesh) {
-      return;
-    }
-
-    // Remove highlighting from the previous selection.
-    restorePreviousMaterials();
-
-    selectedComponent = mesh;
-
-    const selectedName = getComponentName(mesh);
-
-    // Find all meshes belonging to the same component.
-    const matchingParts = assembly.children.filter(
-      part =>
-        part.isMesh &&
-        getComponentName(part) === selectedName
-    );
-
-    // Highlight every matching mesh.
-    selectedMeshes = matchingParts.map(part => {
-      const originalMaterial = part.material;
-
-      const highlightMaterial =
-        createHighlightMaterial(originalMaterial);
-
-      part.material = highlightMaterial;
-
-      return {
-        mesh: part,
-        originalMaterial,
-        highlightMaterial
-      };
     });
-
-    // Update component name and description.
-    selectedPartLabel.textContent = selectedName;
-    inspectName.textContent = selectedName;
-
-    inspectType.textContent = mesh.geometry.type.replace(
-      'Geometry',
-      ''
-    );
-
-    inspectDescription.textContent =
-      componentDescriptions[selectedName] ||
-      'A component of the interactive 3D demonstration assembly.';
-
-    // Calculate the component's world position.
-    const worldPosition = new THREE.Vector3();
-
-    mesh.getWorldPosition(worldPosition);
-
-    inspectPosition.textContent = [
-      worldPosition.x,
-      worldPosition.y,
-      worldPosition.z
-    ]
-      .map(value => value.toFixed(2))
-      .join(', ');
-
-    // Calculate dimensions using the selected mesh's bounding box.
-    const boundingBox = new THREE.Box3().setFromObject(mesh);
-
-    const size = boundingBox.getSize(new THREE.Vector3());
-
-    inspectDimensions.textContent = [
-      size.x,
-      size.y,
-      size.z
-    ]
-      .map(value => value.toFixed(2))
-      .join(' × ');
+    highlightedMeshes = [];
   }
 
-  // Smoothly move the camera towards the selected component.
-  function focusSelectedComponent() {
-    if (!selectedComponent) {
-      alert(
-        'Select a component first by clicking it or pinching with your hand.'
-      );
+  function selectAnatomicalPart(part, targetObject = null) {
+    if (!part) return;
 
-      return;
+    restoreMaterials();
+    currentPart = part;
+
+    // Update labels
+    if (selectedPartLabel) selectedPartLabel.textContent = part.name;
+    if (inspectName) inspectName.textContent = part.name;
+    if (inspectLatin) inspectLatin.textContent = part.latinName || 'Terminologia Anatomica';
+    if (inspectType) inspectType.textContent = part.category || part.badge || 'Anatomical Structure';
+    if (inspectDescription) inspectDescription.textContent = part.detailedAnatomy || part.shortDescription || '';
+    if (inspectHemodynamics) inspectHemodynamics.textContent = part.pressure || 'Standard Systemic';
+
+    // Position & Dimensions
+    if (part.pinPosition) {
+      if (inspectPosition) {
+        inspectPosition.textContent = `${part.pinPosition.x.toFixed(1)}, ${part.pinPosition.y.toFixed(1)}, ${part.pinPosition.z.toFixed(1)} mm`;
+      }
+    } else if (targetObject) {
+      const wp = new THREE.Vector3();
+      targetObject.getWorldPosition(wp);
+      if (inspectPosition) {
+        inspectPosition.textContent = `${wp.x.toFixed(2)}, ${wp.y.toFixed(2)}, ${wp.z.toFixed(2)}`;
+      }
     }
 
-    // Include all meshes belonging to the selected component.
-    const selectedName = getComponentName(selectedComponent);
+    if (targetObject) {
+      const box = new THREE.Box3().setFromObject(targetObject);
+      const size = box.getSize(new THREE.Vector3());
+      if (inspectDimensions) {
+        inspectDimensions.textContent = `${(size.x * 10).toFixed(1)} × ${(size.y * 10).toFixed(1)} × ${(size.z * 10).toFixed(1)} mm`;
+      }
+    } else {
+      if (inspectDimensions) inspectDimensions.textContent = 'Standard Adult Human Scale';
+    }
 
-    const matchingParts = assembly.children.filter(
-      part =>
-        part.isMesh &&
-        getComponentName(part) === selectedName
-    );
+    // Highlight target object if mesh
+    if (targetObject && targetObject.isMesh) {
+      highlightMesh(targetObject);
+    }
 
-    const box = new THREE.Box3();
-
-    matchingParts.forEach(part => {
-      box.expandByObject(part);
-    });
-
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-
-    const distance =
-      Math.max(size.x, size.y, size.z, 0.5) * 3.2;
-
-    const direction = new THREE.Vector3(
-      1,
-      0.7,
-      1
-    ).normalize();
-
-    cameraState.targetCameraPosition.copy(
-      center.clone().add(
-        direction.multiplyScalar(distance)
-      )
-    );
-
-    cameraState.targetCameraTarget.copy(center);
-
-    cameraState.cameraTransition = true;
+    if (wikiBtn) wikiBtn.disabled = false;
+    if (focusBtn) focusBtn.disabled = false;
   }
 
-  // Public functions available to main.js.
+  function highlightMesh(mesh) {
+    const originalMaterial = mesh.material;
+    let highlightMaterial;
+
+    if (originalMaterial.isMeshStandardMaterial || originalMaterial.isMeshPhysicalMaterial) {
+      highlightMaterial = originalMaterial.clone();
+      highlightMaterial.emissive = new THREE.Color('#39d6e7');
+      highlightMaterial.emissiveIntensity = 0.55;
+    } else {
+      highlightMaterial = new THREE.MeshBasicMaterial({ color: '#39d6e7', wireframe: true });
+    }
+
+    mesh.material = highlightMaterial;
+    highlightedMeshes.push({ mesh, originalMaterial, highlightMaterial });
+  }
+
+  function focusCurrent() {
+    if (!currentPart) return;
+
+    if (currentPart.cameraFocus) {
+      const cf = currentPart.cameraFocus;
+      // Convert to normalized coordinates
+      cameraState.targetCameraPosition.set(cf.position.x * 0.02, cf.position.y * 0.02, cf.position.z * 0.02);
+      cameraState.targetCameraTarget.set(cf.target.x * 0.02, cf.target.y * 0.02, cf.target.z * 0.02);
+      cameraState.cameraTransition = true;
+    } else if (currentPart.pinPosition) {
+      const wp = new THREE.Vector3(currentPart.pinPosition.x * 0.016, currentPart.pinPosition.y * 0.016, currentPart.pinPosition.z * 0.016);
+      focusOn(wp, 2.5);
+    }
+  }
+
+  if (wikiBtn) {
+    wikiBtn.addEventListener('click', () => {
+      if (currentPart) onOpenWiki?.(currentPart);
+    });
+  }
+
+  if (focusBtn) {
+    focusBtn.addEventListener('click', focusCurrent);
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearComponentSelection);
+  }
+
   return {
-    selectComponent,
+    selectAnatomicalPart,
     clearComponentSelection,
-    focusSelectedComponent,
-    getComponentName,
-
-    getSelectedComponent: () => selectedComponent
+    focusCurrent,
+    getCurrentPart: () => currentPart
   };
 }

@@ -1,674 +1,618 @@
+// ============================================================================
+// GESTUREFORGE MED 3D — MAIN APPLICATION ENTRY POINT
+// Surgical 3D Anatomy, Computer Vision Gesture Controls, ECG, Case Studies & Wiki
+// ============================================================================
 
 import './style.css';
-
 import * as THREE from 'three';
 
-// ================================================
-// 1. SCENE
-// ================================================
-
+// 1. Scene & Organ Engines
 import { createSceneManager } from './scene/sceneManager.js';
-import { createAssembly } from './scene/assembly.js';
+import { loadCardiacModelSuite, setHeartXRayMode } from './scene/heartLoader.js';
+import { createOrganModel } from './scene/organBuilder.js';
+import { HEART_ANATOMY } from './data/heartAnatomy.js';
+import { ORGANS, getOrganById } from './data/organsData.js';
 
-import {
-    loadHeartModel,
-    loadHeartComparisonModels
-} from './scene/heartLoader.js';
+// 2. Audio & ECG Monitoring
+import { createHeartAudio } from './audio/heartAudio.js';
+import { createEcgMonitor } from './ui/ecgMonitor.js';
 
-// ================================================
-// 2. FEATURES
-// ================================================
+// 3. UI Panels & Modals
+import { createAnatomyPanel } from './ui/anatomyPanel.js';
+import { createCaseStudyPanel } from './ui/caseStudyPanel.js';
+import { createWikipediaModal } from './ui/wikipediaModal.js';
+import { createStatusPanel } from './ui/statusPanel.js';
 
+// 4. Features & Controls
+import { createExplodedView } from './features/explodedView.js';
 import { setupComponentSelection } from './features/selection.js';
 import { createComponentInspector } from './features/componentInspector.js';
-import { createExplodedView } from './features/explodedView.js';
-import { setupVisibility } from './features/visibility.js';
-
-// ================================================
-// 3. CONTROLS
-// ================================================
-
-import { setupKeyboardControls } from './controls/keyboardControls.js';
 import { setupMouseControls } from './controls/mouseControls.js';
+import { setupKeyboardControls } from './controls/keyboardControls.js';
 
-// ================================================
-// 4. GESTURES
-// ================================================
-
+// 5. Computer Vision & Hand Tracking
 import { createHandTracker } from './gestures/handTracker.js';
 import { createGestureControls } from './gestures/gestureControls.js';
 
-// ================================================
-// 5. UI
-// ================================================
-
-import { createStatusPanel } from './ui/statusPanel.js';
-
-
-// ================================================
-// 6. INITIALIZE SCENE
-// ================================================
+// ============================================================================
+// INITIALIZE 3D SCENE & WORKSTATION
+// ============================================================================
 
 const {
-    viewer,
-    scene,
-    camera,
-    renderer,
-    controls,
-    cameraState
+  viewer,
+  scene,
+  camera,
+  renderer,
+  controls,
+  cameraState,
+  focusOn,
+  resetCamera
 } = createSceneManager();
 
-const {
-    defaultCameraPosition,
-    defaultCameraTarget,
-    targetCameraPosition,
-    targetCameraTarget
-} = cameraState;
+const statusPanel = createStatusPanel();
+const heartAudio = createHeartAudio();
+const wikiModal = createWikipediaModal();
+const caseStudyPanel = createCaseStudyPanel();
 
+// ============================================================================
+// REAL-TIME ECG MONITOR
+// ============================================================================
 
-// ================================================
-// 7. CREATE ORIGINAL MECHANICAL ASSEMBLY
-// ================================================
+const ecgCanvas = document.querySelector('#ecgCanvas');
+let cardiacPhase = 0; // 0 to 1
 
-const { assembly, parts } = createAssembly(scene);
+const ecgMonitor = createEcgMonitor({
+  canvas: ecgCanvas,
+  heartAudio,
+  onBeat: (stage) => {
+    // Cardiac pulse deformation
+    if (activeOrganId === 'heart' && cardiacModelSuite) {
+      if (stage === 'systole') {
+        triggerSystolicContraction();
+      }
+    }
+  }
+});
 
+// BPM Slider
+const bpmSlider = document.querySelector('#bpmSlider');
+const bpmSliderLabel = document.querySelector('#bpmSliderLabel');
+const bpmValueTop = document.querySelector('#bpmValue');
 
-// ================================================
-// 8. HEART MODEL VARIABLES
-// ================================================
-
-let heartModel = null;
-let comparisonGroup = null;
-
-
-// ================================================
-// 9. FRAME HEART MODELS AUTOMATICALLY
-// ================================================
-
-function frameComparisonModels() {
-
-    if (!comparisonGroup) return;
-
-    // Update model world positions
-    comparisonGroup.updateMatrixWorld(true);
-
-    // Calculate complete model boundaries
-    const bounds = new THREE.Box3().setFromObject(comparisonGroup);
-
-    // Calculate bounding sphere
-    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-
-    const modelCenter = sphere.center;
-    const modelRadius = sphere.radius;
-
-    console.log('MODEL CENTER:', modelCenter.toArray());
-    console.log('MODEL RADIUS:', modelRadius);
-
-    // Calculate vertical and horizontal camera field of view
-    const verticalFov = THREE.MathUtils.degToRad(camera.fov);
-
-    const horizontalFov = 2 * Math.atan(
-        Math.tan(verticalFov / 2) * camera.aspect
-    );
-
-    // Use the smaller field of view
-    const limitingFov = Math.min(verticalFov, horizontalFov);
-
-    // Calculate camera distance
-    const distance = (
-        modelRadius / Math.sin(limitingFov / 2)
-    ) * 1.35;
-
-    // Disable previous camera animation
-    cameraState.cameraTransition = false;
-
-    // Position camera
-    camera.position.set(
-        modelCenter.x,
-        modelCenter.y,
-        modelCenter.z + distance
-    );
-
-    // Point camera towards models
-    controls.target.copy(modelCenter);
-
-    // Camera clipping settings
-    camera.near = 0.1;
-    camera.far = Math.max(1000, distance * 5);
-
-    // Zoom settings
-    controls.minDistance = 1;
-    controls.maxDistance = Math.max(100, distance * 3);
-
-    camera.lookAt(modelCenter);
-
-    camera.updateProjectionMatrix();
-    controls.update();
-
-    console.log('CAMERA POSITION:', camera.position.toArray());
-    console.log('CAMERA DISTANCE:', distance);
-
-    // Inspect visible meshes
-    comparisonGroup.traverse((child) => {
-
-        if (child.isMesh) {
-
-            console.log('MODEL CHECK:', {
-                name: child.name,
-                visible: child.visible,
-                position: child.getWorldPosition(
-                    new THREE.Vector3()
-                ).toArray()
-            });
-
-        }
-
-    });
-
+if (bpmSlider) {
+  bpmSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    ecgMonitor.setBpm(val);
+    if (bpmSliderLabel) bpmSliderLabel.textContent = `${val} BPM`;
+    if (bpmValueTop) bpmValueTop.textContent = val;
+  });
 }
 
+// Audio Stethoscope Toggle
+const audioToggleBtn = document.querySelector('#audioToggleBtn');
+const audioIcon = document.querySelector('#audioIcon');
 
-// ================================================
-// 10. LOAD HEART MODELS
-// ================================================
+if (audioToggleBtn) {
+  audioToggleBtn.addEventListener('click', () => {
+    const unmuted = heartAudio.toggleMute();
+    audioToggleBtn.classList.toggle('active', unmuted);
+    if (audioIcon) audioIcon.textContent = unmuted ? '🔊' : '🔇';
+  });
+}
 
-loadHeartModel(scene)
+// ============================================================================
+// DISSECTION & EXPLODED VIEW ENGINE
+// ============================================================================
 
-    .then(async (heart) => {
+const explodeButton = document.querySelector('#explode');
+const explodedView = createExplodedView({
+  explodeButton,
+  onExplodeChange: (isExploded) => {
+    console.log('Dissection mode changed:', isExploded);
+  }
+});
 
-        heartModel = heart;
+// ============================================================================
+// ORGAN MANAGEMENT SYSTEM
+// ============================================================================
 
-        // Hide original single heart model
-        heartModel.visible = false;
+let activeOrganId = 'heart';
+let activeOrganGroup = null;
+let cardiacModelSuite = null;
+let isXRayMode = false;
+let isRotating = true;
 
-        // Hide mechanical assembly
-        assembly.visible = false;
+// Heart systolic pulsation state
+let systolicScale = 1.0;
+let targetSystolicScale = 1.0;
 
-        // Load all four NIH comparison models
-        comparisonGroup = await loadHeartComparisonModels(scene);
+function triggerSystolicContraction() {
+  targetSystolicScale = 0.94; // 6% ventricular wall contraction
+  setTimeout(() => {
+    targetSystolicScale = 1.0; // Diastolic recoil
+  }, 160);
+}
 
-        console.log('All four comparison models loaded.');
+// Root container for all organs in scene
+const organContainer = new THREE.Group();
+organContainer.name = 'Organ Container';
+scene.add(organContainer);
 
-        // Automatically frame all models
-        frameComparisonModels();
+// Load Initial Heart Model
+async function initCardiacModel() {
+  try {
+    statusPanel.setEngineStatus('LOADING 3D HEART');
+    const suite = await loadCardiacModelSuite(scene);
+    cardiacModelSuite = suite;
+    activeOrganGroup = suite.group;
+    organContainer.add(suite.group);
 
-        console.log('GestureForge Med 3D: Heart comparison viewer ready!');
+    explodedView.setParts(suite.dissectibleParts);
+    anatomyPanel.setParts(HEART_ANATOMY);
 
-    })
+    statusPanel.setEngineStatus('ONLINE');
+    console.log('Cardiac model suite loaded successfully.');
+  } catch (err) {
+    console.error('Failed to load cardiac models:', err);
+    statusPanel.setEngineStatus('LOAD ERROR');
+  }
+}
 
-    .catch((error) => {
+// Switch between Organs (Heart, Brain, Lungs, Kidney, Eye)
+async function switchOrgan(organId) {
+  if (organId === activeOrganId && activeOrganGroup) return;
 
-        console.error('Could not load heart models:', error);
+  activeOrganId = organId;
+  const organMeta = getOrganById(organId);
 
-    });
+  // Update HUD
+  const hudActiveOrgan = document.querySelector('#hudActiveOrgan');
+  if (hudActiveOrgan) {
+    hudActiveOrgan.textContent = organMeta.name.toUpperCase();
+  }
 
+  // Clear current active group from container
+  while (organContainer.children.length > 0) {
+    organContainer.remove(organContainer.children[0]);
+  }
 
-// Keep inspection disabled for normal application startup
-// inspectHeartParts();
+  // Reset controls & inspector
+  inspector.clearComponentSelection();
+  explodedView.resetExplodedView();
+  resetCamera();
 
+  if (organId === 'heart') {
+    if (cardiacModelSuite) {
+      activeOrganGroup = cardiacModelSuite.group;
+      organContainer.add(activeOrganGroup);
+      explodedView.setParts(cardiacModelSuite.dissectibleParts);
+      anatomyPanel.setParts(HEART_ANATOMY);
+    } else {
+      await initCardiacModel();
+    }
+  } else {
+    // Build procedural 3D model
+    const newOrgan = createOrganModel(organId);
+    if (newOrgan) {
+      activeOrganGroup = newOrgan;
+      organContainer.add(newOrgan);
 
-// ================================================
-// 11. MOUSE CONTROLS
-// ================================================
+      // Collect dissectible sub-parts
+      const parts = [];
+      newOrgan.traverse(child => {
+        if (child.isMesh && child.userData.explodeDir) {
+          parts.push({
+            object: child,
+            originalPosition: child.position.clone(),
+            explodeVector: child.userData.explodeDir.clone()
+          });
+        }
+      });
+      explodedView.setParts(parts);
 
-setupMouseControls(controls);
+      // Set anatomy hierarchy data
+      anatomyPanel.setParts(organMeta.parts || []);
+    }
+  }
 
+  // Update active pill styling
+  document.querySelectorAll('.organ-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-organ') === organId);
+  });
+}
 
-// ================================================
-// 12. COMPONENT INSPECTOR
-// ================================================
+// Organ Switcher Event Listeners
+document.querySelectorAll('.organ-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const organId = btn.getAttribute('data-organ');
+    switchOrgan(organId);
+  });
+});
+
+// ============================================================================
+// INSPECTOR & ANATOMY SELECTION
+// ============================================================================
 
 const inspector = createComponentInspector({
-    assembly,
-    cameraState
+  cameraState,
+  focusOn,
+  onOpenWiki: (part) => {
+    wikiModal.openForPart(part);
+  },
+  onOpenCaseStudy: (part) => {
+    switchInspectorTab('tab-case-study');
+    caseStudyPanel.render(part);
+  }
 });
 
-const {
-    selectComponent,
-    clearComponentSelection,
-    focusSelectedComponent
-} = inspector;
+const anatomyPanel = createAnatomyPanel({
+  onSelectPart: (part) => {
+    inspector.selectAnatomicalPart(part);
+    caseStudyPanel.render(part);
 
+    // Auto focus camera
+    inspector.focusCurrent();
+  },
+  onOpenWiki: (part) => {
+    wikiModal.openForPart(part);
+  }
+});
 
-// ================================================
-// 13. COMPONENT SELECTION
-// ================================================
-
+// 3D Raycasting Selection
 const selection = setupComponentSelection({
-    renderer,
-    camera,
-    assembly,
-    onSelect: selectComponent
+  renderer,
+  camera,
+  scene,
+  onSelect: (hit) => {
+    if (!hit) return;
+
+    if (hit.type === 'pin' && hit.partData) {
+      anatomyPanel.setSelectedPart(hit.partData.id);
+      inspector.selectAnatomicalPart(hit.partData, hit.object);
+      caseStudyPanel.render(hit.partData);
+      heartAudio.playSelectChirp();
+    } else if (hit.type === 'mesh') {
+      const partId = hit.partId;
+      let partData = null;
+
+      if (activeOrganId === 'heart') {
+        partData = HEART_ANATOMY.find(p => p.id === partId);
+      } else {
+        const organMeta = getOrganById(activeOrganId);
+        partData = (organMeta.parts || []).find(p => p.id === partId);
+      }
+
+      if (partData) {
+        anatomyPanel.setSelectedPart(partData.id);
+        inspector.selectAnatomicalPart(partData, hit.object);
+        caseStudyPanel.render(partData);
+      } else {
+        inspector.selectAnatomicalPart({
+          name: hit.partName || 'Anatomical Structure',
+          shortDescription: 'Examining tissue layer in 3D perspective.'
+        }, hit.object);
+      }
+      heartAudio.playSelectChirp();
+    }
+  }
 });
 
-document
-    .querySelector('#focusComponent')
-    .addEventListener('click', focusSelectedComponent);
+// ============================================================================
+// INSPECTOR TABS SWITCHER
+// ============================================================================
 
-document
-    .querySelector('#clearSelection')
-    .addEventListener('click', clearComponentSelection);
+function switchInspectorTab(tabId) {
+  document.querySelectorAll('.inspector-tabs .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === tabId);
+  });
+}
 
-
-// ================================================
-// 14. COMPONENT VISIBILITY
-// ================================================
-
-setupVisibility(parts);
-
-
-// ================================================
-// 15. EXPLODED VIEW
-// ================================================
-
-const explodedView = createExplodedView({
-    parts,
-    assembly,
-    explodeButton: document.querySelector('#explode')
+document.querySelectorAll('.inspector-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchInspectorTab(btn.getAttribute('data-tab'));
+  });
 });
 
-
-// ================================================
-// 16. ROTATION CONTROL
-// ================================================
-
-let isRotating = false ;
+// ============================================================================
+// ROTATION & X-RAY CONTROLS
+// ============================================================================
 
 const rotateButton = document.querySelector('#rotate');
 
-function updateRotationButton() {
-
-    rotateButton.textContent = isRotating
-        ? 'Pause Rotation'
-        : 'Resume Rotation';
-
-}
-
 function toggleRotation() {
-
-    isRotating = !isRotating;
-
-    updateRotationButton();
-
+  isRotating = !isRotating;
+  if (rotateButton) {
+    rotateButton.innerHTML = isRotating ? '<span>⏸</span> Pause Orbit' : '<span>▶</span> Resume Orbit';
+    rotateButton.classList.toggle('active', !isRotating);
+  }
+  return isRotating;
 }
 
-rotateButton.addEventListener('click', toggleRotation);
+if (rotateButton) {
+  rotateButton.addEventListener('click', toggleRotation);
+}
 
+const xrayButton = document.querySelector('#xrayToggle');
 
-// ================================================
-// 17. RESET APPLICATION
-// ================================================
+function toggleXRay() {
+  isXRayMode = !isXRayMode;
+  if (cardiacModelSuite && activeOrganId === 'heart') {
+    setHeartXRayMode(cardiacModelSuite.group, isXRayMode);
+  } else if (activeOrganGroup) {
+    setHeartXRayMode(activeOrganGroup, isXRayMode);
+  }
+  if (xrayButton) {
+    xrayButton.classList.toggle('active', isXRayMode);
+  }
+}
 
-function resetApplication() {
+if (xrayButton) {
+  xrayButton.addEventListener('click', toggleXRay);
+}
 
-    // Reset mechanical assembly
-    assembly.rotation.set(0, 0, 0);
-
-    // Reset original heart
-    if (heartModel) {
-        heartModel.rotation.set(0, 0, 0);
+// Reset Button
+const resetButton = document.querySelector('#reset');
+if (resetButton) {
+  resetButton.addEventListener('click', () => {
+    if (activeOrganGroup) {
+      activeOrganGroup.rotation.set(0, 0, 0);
     }
-
-    // Reset comparison models
-    if (comparisonGroup) {
-        comparisonGroup.rotation.set(0, 0, 0);
-        frameComparisonModels();
-    } else {
-
-        targetCameraPosition.copy(defaultCameraPosition);
-        targetCameraTarget.copy(defaultCameraTarget);
-
-        cameraState.cameraTransition = true;
-
-    }
-
-    // Reset exploded view
     explodedView.resetExplodedView();
-
-    // Clear component selection
-    clearComponentSelection();
-
-    // Resume rotation
-    isRotating = true;
-
-    updateRotationButton();
-
+    inspector.clearComponentSelection();
+    resetCamera();
+  });
 }
 
-document
-    .querySelector('#reset')
-    .addEventListener('click', resetApplication);
-
-
-// ================================================
-// 18. KEYBOARD CONTROLS
-// ================================================
+// Setup Mouse & Keyboard Controls
+setupMouseControls(controls);
 
 setupKeyboardControls({
-
-    assembly,
-    camera,
-    controls,
-
-    onToggleRotation: toggleRotation,
-
-    onReset: resetApplication,
-
-    onToggleExplodedView: explodedView.toggleExplodedView,
-
-    onClearSelection: clearComponentSelection
-
+  getActiveOrganGroup: () => activeOrganGroup,
+  camera,
+  controls,
+  onToggleRotation: toggleRotation,
+  onReset: () => {
+    if (activeOrganGroup) activeOrganGroup.rotation.set(0, 0, 0);
+    explodedView.resetExplodedView();
+    inspector.clearComponentSelection();
+    resetCamera();
+  },
+  onToggleExplodedView: explodedView.toggleExplodedView,
+  onToggleXRay: toggleXRay,
+  onToggleAudio: () => {
+    if (audioToggleBtn) audioToggleBtn.click();
+  },
+  onSelectOrganIndex: (idx) => {
+    if (idx >= 0 && idx < ORGANS.length) {
+      switchOrgan(ORGANS[idx].id);
+    }
+  },
+  onClearSelection: inspector.clearComponentSelection
 });
 
-
-// ================================================
-// 19. PERFORMANCE MONITOR
-// ================================================
-
-const statusPanel = createStatusPanel();
-
-
-// ================================================
-// 20. GESTURE UI ELEMENTS
-// ================================================
+// ============================================================================
+// COMPUTER VISION & MEDIAPIPE GESTURE CONTROLS
+// ============================================================================
 
 const cameraButton = document.querySelector('#cameraButton');
-
 const webcam = document.querySelector('#webcam');
-
 const handCanvas = document.querySelector('#handCanvas');
-
-const handStatus = document.querySelector('#handStatus');
-
-const controlMode = document.querySelector('#controlMode');
-
-const trackingStatus = document.querySelector('#trackingStatus');
-
-const gestureName = document.querySelector('#gestureName');
-
-const gestureHint = document.querySelector('#gestureHint');
-
 const handCursor = document.querySelector('#handCursor');
 
-const trackingDot = trackingStatus.previousElementSibling;
+const handStatus = document.querySelector('#handStatus');
+const controlMode = document.querySelector('#controlMode');
+const gestureName = document.querySelector('#gestureName');
+const gestureHint = document.querySelector('#gestureHint');
+const gestureIcon = document.querySelector('#gestureIcon');
+const gestureDot = document.querySelector('#gestureDot');
 
-
-// ================================================
-// 21. GESTURE DISPLAY FUNCTIONS
-// ================================================
+const headerVisionText = document.querySelector('#headerVisionText');
+const headerVisionDot = document.querySelector('#headerVisionDot');
 
 function updateGestureDisplay(gesture) {
-
-    gestureName.textContent = gesture.name;
-
-    gestureHint.textContent = gesture.hint;
-
+  if (gestureName) gestureName.textContent = gesture.name;
+  if (gestureHint) gestureHint.textContent = gesture.hint;
+  if (gestureIcon) gestureIcon.textContent = gesture.icon || '👋';
 }
 
 function updateHandStatus(status) {
+  if (handStatus) handStatus.textContent = status;
 
-    handStatus.textContent = status;
-
-    if (status === 'HAND DETECTED') {
-
-        trackingStatus.textContent = 'HAND TRACKING ACTIVE';
-
-        trackingDot.style.background = '#39e58c';
-
-    } else {
-
-        trackingStatus.textContent =
-            status === 'SHOW YOUR HAND'
-                ? 'NO HAND DETECTED'
-                : status;
-
-        trackingDot.style.background = '#718096';
-
-    }
-
+  if (status === 'HAND DETECTED') {
+    if (gestureDot) gestureDot.style.background = '#39e58c';
+    if (headerVisionDot) headerVisionDot.classList.add('active');
+    if (headerVisionText) headerVisionText.textContent = 'VISION TRACKING';
+  } else {
+    if (gestureDot) gestureDot.style.background = '#718096';
+    if (headerVisionDot) headerVisionDot.classList.remove('active');
+    if (headerVisionText) headerVisionText.textContent = 'CAMERA ACTIVE';
+  }
 }
 
 function updateControlMode(mode) {
-
-    controlMode.textContent = mode;
-
+  if (controlMode) controlMode.textContent = mode;
 }
 
-
-// ================================================
-// 22. GESTURE CONTROLS
-// ================================================
-
 const gestureControls = createGestureControls({
-
-    assembly,
-    selection,
-    selectComponent,
-    toggleRotation,
-
-    onGestureUpdate: updateGestureDisplay,
-
-    onHandStatus: updateHandStatus,
-
-    onControlModeUpdate: updateControlMode,
-
-    handCursor
-
+  getActiveOrganGroup: () => activeOrganGroup,
+  camera,
+  controls,
+  selection,
+  onSelectHit: (hit) => {
+    if (hit.type === 'pin' && hit.partData) {
+      anatomyPanel.setSelectedPart(hit.partData.id);
+      inspector.selectAnatomicalPart(hit.partData, hit.object);
+      caseStudyPanel.render(hit.partData);
+    } else if (hit.type === 'mesh') {
+      const partId = hit.partId;
+      let partData = null;
+      if (activeOrganId === 'heart') {
+        partData = HEART_ANATOMY.find(p => p.id === partId);
+      } else {
+        const organMeta = getOrganById(activeOrganId);
+        partData = (organMeta.parts || []).find(p => p.id === partId);
+      }
+      if (partData) {
+        anatomyPanel.setSelectedPart(partData.id);
+        inspector.selectAnatomicalPart(partData, hit.object);
+        caseStudyPanel.render(partData);
+      }
+    }
+  },
+  toggleRotation,
+  toggleExplodedView: explodedView.toggleExplodedView,
+  heartAudio,
+  onGestureUpdate: updateGestureDisplay,
+  onHandStatus: updateHandStatus,
+  onControlModeUpdate: updateControlMode,
+  handCursor
 });
-
-
-// ================================================
-// 23. MEDIAPIPE HAND TRACKER
-// ================================================
 
 const handTracker = createHandTracker({
-
-    video: webcam,
-
-    canvas: handCanvas,
-
-    onLandmarks: gestureControls.handleLandmarks,
-
-    onNoHand: gestureControls.handleNoHand,
-
-    onStatus: status => {
-
-        if (status === 'ACTIVE') {
-
-            handStatus.textContent = 'CAMERA ACTIVE';
-
-            controlMode.textContent = 'HAND TRACKING';
-
-            trackingStatus.textContent = 'SHOW YOUR HAND';
-
-            trackingDot.style.background = '#718096';
-
-            cameraButton.textContent = 'Stop Hand Tracking';
-
-            cameraButton.disabled = false;
-
-        }
-
-        if (status === 'LOADING') {
-
-            cameraButton.textContent = 'Loading hand tracking...';
-
-            cameraButton.disabled = true;
-
-        }
-
-        if (status === 'ERROR') {
-
-            handStatus.textContent = 'CAMERA ERROR';
-
-            trackingStatus.textContent = 'CAMERA ERROR';
-
-            cameraButton.textContent = 'Try Again';
-
-            cameraButton.disabled = false;
-
-            controlMode.textContent = 'MOUSE + KEYBOARD';
-
-        }
-
-        if (status === 'OFF') {
-
-            handStatus.textContent = 'CAMERA OFF';
-
-            trackingStatus.textContent = 'CAMERA OFF';
-
-            trackingDot.style.background = '#718096';
-
-            controlMode.textContent = 'MOUSE + KEYBOARD';
-
-            cameraButton.textContent = 'Enable Hand Tracking';
-
-            cameraButton.disabled = false;
-
-            gestureName.textContent = 'NO HAND DETECTED';
-
-            gestureHint.textContent = 'Enable hand tracking to begin';
-
-            handCursor.style.display = 'none';
-
-        }
-
+  video: webcam,
+  canvas: handCanvas,
+  onLandmarks: gestureControls.handleLandmarks,
+  onNoHand: gestureControls.handleNoHand,
+  onStatus: (status) => {
+    if (status === 'ACTIVE') {
+      if (handStatus) handStatus.textContent = 'CAMERA ACTIVE';
+      if (controlMode) controlMode.textContent = 'VISION TRACKING';
+      if (headerVisionText) headerVisionText.textContent = 'CAMERA ACTIVE';
+      if (headerVisionDot) headerVisionDot.classList.add('active');
+      if (cameraButton) {
+        cameraButton.innerHTML = '<span>⏹</span> Stop Hand Tracking';
+        cameraButton.disabled = false;
+      }
     }
-
+    if (status === 'LOADING') {
+      if (cameraButton) {
+        cameraButton.innerHTML = '<span>⏳</span> Loading MediaPipe Vision AI...';
+        cameraButton.disabled = true;
+      }
+    }
+    if (status === 'ERROR') {
+      if (handStatus) handStatus.textContent = 'CAMERA ERROR';
+      if (headerVisionText) headerVisionText.textContent = 'CAMERA ERROR';
+      if (cameraButton) {
+        cameraButton.innerHTML = '<span>🔄</span> Try Camera Again';
+        cameraButton.disabled = false;
+      }
+    }
+    if (status === 'OFF') {
+      if (handStatus) handStatus.textContent = 'CAMERA OFF';
+      if (controlMode) controlMode.textContent = 'MOUSE + TOUCH';
+      if (headerVisionText) headerVisionText.textContent = 'CAMERA OFF';
+      if (headerVisionDot) headerVisionDot.classList.remove('active');
+      if (cameraButton) {
+        cameraButton.innerHTML = '<span>📷</span> Enable Hand Tracking';
+        cameraButton.disabled = false;
+      }
+      if (gestureName) gestureName.textContent = 'CAMERA OFF';
+      if (gestureHint) gestureHint.textContent = 'Enable hand tracking to begin.';
+      if (gestureIcon) gestureIcon.textContent = '📷';
+      if (handCursor) handCursor.style.display = 'none';
+    }
+  }
 });
 
-
-// ================================================
-// 24. CAMERA ON / OFF
-// ================================================
-
-cameraButton.addEventListener('click', async () => {
-
+if (cameraButton) {
+  cameraButton.addEventListener('click', async () => {
     if (handTracker.isRunning()) {
-
-        handTracker.stop();
-
-        gestureControls.reset();
-
-        return;
-
+      handTracker.stop();
+      gestureControls.reset();
+      return;
     }
 
     try {
-
-        await handTracker.start();
-
-    } catch (error) {
-
-        console.error('Hand tracking could not start:', error);
-
-        alert(
-            'Unable to start the camera. Please check browser camera permissions.'
-        );
-
+      await handTracker.start();
+    } catch (err) {
+      console.error('Camera could not start:', err);
+      alert('Unable to access camera. Please ensure webcam permissions are enabled in your browser.');
     }
-
-});
-
-
-// ================================================
-// 25. RESPONSIVE RESIZE
-// ================================================
-
-function resize() {
-
-    const width = Math.max(viewer.clientWidth, 1);
-
-    const height = Math.max(viewer.clientHeight, 1);
-
-    camera.aspect = width / height;
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(width, height);
-
-    // Reframe models when viewer dimensions change
-    if (comparisonGroup) {
-        frameComparisonModels();
-    }
-
+  });
 }
 
-window.addEventListener('resize', resize);
+// ============================================================================
+// RESPONSIVE VIEWPORT RESIZING
+// ============================================================================
 
-resize();
+function resizeViewport() {
+  const width = Math.max(viewer.clientWidth, 1);
+  const height = Math.max(viewer.clientHeight, 1);
 
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
 
-// ================================================
-// 26. ANIMATION LOOP
-// ================================================
+window.addEventListener('resize', resizeViewport);
+resizeViewport();
+
+// ============================================================================
+// ANIMATION & RENDER LOOP
+// ============================================================================
+
+let clock = new THREE.Clock();
 
 function animate() {
+  requestAnimationFrame(animate);
 
-    requestAnimationFrame(animate);
+  const delta = clock.getDelta();
 
-    // Rotate comparison models
-    if (isRotating) {
+  // Continuous subtle organ rotation when orbit is enabled
+  if (isRotating && activeOrganGroup) {
+    activeOrganGroup.rotation.y += 0.005;
+  }
 
-        if (comparisonGroup) {
-
-            comparisonGroup.rotation.y += 0.004;
-
-        } else if (heartModel) {
-
-            heartModel.rotation.y += 0.004;
-
-        } else {
-
-            assembly.rotation.y += 0.004;
-
-        }
-
+  // Smooth cardiac systolic-diastolic scaling
+  systolicScale += (targetSystolicScale - systolicScale) * 0.18;
+  if (activeOrganId === 'heart' && cardiacModelSuite) {
+    if (cardiacModelSuite.dissectedGroup) {
+      cardiacModelSuite.dissectedGroup.scale.setScalar(systolicScale);
     }
-
-    // Smooth camera transitions
-    if (cameraState.cameraTransition) {
-
-        camera.position.lerp(targetCameraPosition, 0.12);
-
-        controls.target.lerp(targetCameraTarget, 0.12);
-
-        const positionClose =
-            camera.position.distanceTo(targetCameraPosition) < 0.01;
-
-        const targetClose =
-            controls.target.distanceTo(targetCameraTarget) < 0.01;
-
-        if (positionClose && targetClose) {
-
-            camera.position.copy(targetCameraPosition);
-
-            controls.target.copy(targetCameraTarget);
-
-            cameraState.cameraTransition = false;
-
-        }
-
+    if (cardiacModelSuite.wholeGroup) {
+      cardiacModelSuite.wholeGroup.scale.setScalar(systolicScale);
     }
+  }
 
-    // Update controls
-    controls.update();
+  // Rotate and pulse 3D Pins
+  if (cardiacModelSuite && cardiacModelSuite.pins) {
+    const time = performance.now() * 0.003;
+    cardiacModelSuite.pins.forEach((pin, idx) => {
+      const ring = pin.children.find(c => c.userData.isPinRing);
+      if (ring) {
+        ring.rotation.z += 0.02;
+        const scale = 1.0 + Math.sin(time + idx) * 0.15;
+        ring.scale.setScalar(scale);
+      }
+    });
+  }
 
-    // Render scene
-    renderer.render(scene, camera);
+  // Smooth camera transitions when focusing
+  if (cameraState.cameraTransition) {
+    camera.position.lerp(cameraState.targetCameraPosition, 0.1);
+    controls.target.lerp(cameraState.targetCameraTarget, 0.1);
 
-    // Update performance monitor
-    statusPanel.updatePerformanceMonitor();
+    const posClose = camera.position.distanceTo(cameraState.targetCameraPosition) < 0.02;
+    const targetClose = controls.target.distanceTo(cameraState.targetCameraTarget) < 0.02;
 
+    if (posClose && targetClose) {
+      camera.position.copy(cameraState.targetCameraPosition);
+      controls.target.copy(cameraState.targetCameraTarget);
+      cameraState.cameraTransition = false;
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+  statusPanel.updatePerformanceMonitor();
 }
 
-
-// ================================================
-// 27. START APPLICATION
-// ================================================
-
+// Start Render Loop & Initialize Model
 animate();
-
-statusPanel.setEngineStatus('ONLINE');
+initCardiacModel();
 
 console.log('GestureForge Med 3D initialized successfully.');

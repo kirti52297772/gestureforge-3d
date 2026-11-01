@@ -1,14 +1,20 @@
+// ============================================================================
+// CLINICAL KEYBOARD SHORTCUTS
+// Rapid navigation controls for surgical viewport examination
+// ============================================================================
 
 export function setupKeyboardControls({
-  assembly,
+  getActiveOrganGroup,
   camera,
   controls,
   onToggleRotation,
   onReset,
   onToggleExplodedView,
+  onToggleXRay,
+  onToggleAudio,
+  onSelectOrganIndex,
   onClearSelection
 }) {
-
   function handleKeyDown(event) {
     if (
       event.target instanceof HTMLInputElement ||
@@ -19,70 +25,72 @@ export function setupKeyboardControls({
     }
 
     const key = event.key.toLowerCase();
+    const organ = getActiveOrganGroup?.();
 
     if (event.code === 'Space') {
       event.preventDefault();
-      onToggleRotation();
+      onToggleRotation?.();
       return;
     }
 
     switch (key) {
       case 'a':
-        onToggleRotation();
+        if (organ) organ.rotation.y -= 0.12;
         break;
-
-      case 'w':
-        assembly.rotation.x -= 0.12;
-        break;
-
-      case 's':
-        assembly.rotation.x += 0.12;
-        break;
-
       case 'd':
-        assembly.rotation.y += 0.12;
+        if (organ) organ.rotation.y += 0.12;
+        break;
+      case 'w':
+        if (organ) organ.rotation.x -= 0.12;
+        break;
+      case 's':
+        if (organ) organ.rotation.x += 0.12;
         break;
 
-      case 'q':
-        assembly.rotation.y -= 0.12;
+      case 'e':
+        onToggleExplodedView?.();
+        break;
+      case 'x':
+        onToggleXRay?.();
+        break;
+      case 'h':
+        onToggleAudio?.();
+        break;
+      case 'r':
+        onReset?.();
+        break;
+
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+        onSelectOrganIndex?.(parseInt(key, 10) - 1);
         break;
 
       case '+':
       case '=':
-        camera.position.addScaledVector(
-          camera.position.clone()
-            .sub(controls.target)
-            .normalize(),
-          -0.5
-        );
-
-        camera.position.clampLength(3, 18);
-        controls.update();
+        if (camera && controls) {
+          camera.position.addScaledVector(
+            camera.position.clone().sub(controls.target).normalize(),
+            -0.4
+          );
+          controls.update();
+        }
         break;
-
       case '-':
       case '_':
-        camera.position.addScaledVector(
-          camera.position.clone()
-            .sub(controls.target)
-            .normalize(),
-          0.5
-        );
-
-        camera.position.clampLength(3, 18);
-        controls.update();
-        break;
-
-      case 'r':
-        onReset();
-        break;
-
-      case 'e':
-        onToggleExplodedView();
+        if (camera && controls) {
+          camera.position.addScaledVector(
+            camera.position.clone().sub(controls.target).normalize(),
+            0.4
+          );
+          controls.update();
+        }
         break;
 
       case 'escape':
-        onClearSelection();
+        onClearSelection?.();
         break;
     }
   }

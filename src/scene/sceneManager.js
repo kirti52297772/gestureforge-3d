@@ -1,3 +1,7 @@
+// ============================================================================
+// THREE.JS MEDICAL 3D SCENE MANAGER
+// Studio surgical lighting, PBR tonemapping, OrbitControls, and clinical tools
+// ============================================================================
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -11,17 +15,17 @@ export function createSceneManager() {
 
   // Create the 3D scene.
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#101820');
+  scene.background = new THREE.Color('#091016');
 
   // Create the camera.
   const camera = new THREE.PerspectiveCamera(
-    45,
-    1,
+    42,
+    viewer.clientWidth / viewer.clientHeight,
     0.1,
     1000
   );
 
-  const defaultCameraPosition = new THREE.Vector3(5, 4, 8);
+  const defaultCameraPosition = new THREE.Vector3(0, 0.4, 4.2);
   const defaultCameraTarget = new THREE.Vector3(0, 0, 0);
 
   camera.position.copy(defaultCameraPosition);
@@ -29,24 +33,19 @@ export function createSceneManager() {
   // Create the WebGL renderer.
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: false
+    alpha: false,
+    powerPreference: 'high-performance'
   });
 
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
-  );
-
-  renderer.setSize(
-    Math.max(viewer.clientWidth, 1),
-    Math.max(viewer.clientHeight, 1)
-  );
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(Math.max(viewer.clientWidth, 1), Math.max(viewer.clientHeight, 1));
 
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.15;
 
   renderer.domElement.style.display = 'block';
   renderer.domElement.style.width = '100%';
@@ -54,66 +53,76 @@ export function createSceneManager() {
 
   viewer.appendChild(renderer.domElement);
 
-  // Add ambient lighting.
-  const ambientLight = new THREE.AmbientLight(
-    '#ffffff',
-    1.5
-  );
-
+  // --------------------------------------------------------------------------
+  // SURGICAL WORKSTATION LIGHTING
+  // --------------------------------------------------------------------------
+  // 1. Soft surgical ambient light
+  const ambientLight = new THREE.AmbientLight('#e6f3fa', 1.4);
   scene.add(ambientLight);
 
-  // Add directional lighting.
-  const directionalLight = new THREE.DirectionalLight(
-    '#ffffff',
-    2.5
-  );
+  // 2. Overhead surgical exam key light
+  const keyLight = new THREE.DirectionalLight('#ffffff', 2.8);
+  keyLight.position.set(4, 7, 5);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.bias = -0.0001;
+  scene.add(keyLight);
 
-  directionalLight.position.set(5, 8, 6);
-  directionalLight.castShadow = true;
-
-  directionalLight.shadow.mapSize.set(2048, 2048);
-
-  scene.add(directionalLight);
-
-  // Add a secondary light for better visibility.
-  const fillLight = new THREE.DirectionalLight(
-    '#39d6e7',
-    0.8
-  );
-
-  fillLight.position.set(-5, 3, -4);
-
+  // 3. Cool cyan fill light (clinical diagnostic tone)
+  const fillLight = new THREE.DirectionalLight('#39d6e7', 1.0);
+  fillLight.position.set(-5, 2, -3);
   scene.add(fillLight);
 
-  // Configure mouse-based camera controls.
-  const controls = new OrbitControls(
-    camera,
-    renderer.domElement
-  );
+  // 4. Subtle rim light to highlight anatomical contours
+  const rimLight = new THREE.DirectionalLight('#ffffff', 1.2);
+  rimLight.position.set(0, -5, -4);
+  scene.add(rimLight);
 
+  // --------------------------------------------------------------------------
+  // CLINICAL REFERENCE GRID
+  // --------------------------------------------------------------------------
+  const gridHelper = new THREE.GridHelper(10, 20, '#264b63', '#162836');
+  gridHelper.position.y = -2.2;
+  scene.add(gridHelper);
+
+  // --------------------------------------------------------------------------
+  // ORBIT CONTROLS
+  // --------------------------------------------------------------------------
+  const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-
+  controls.dampingFactor = 0.06;
   controls.enablePan = true;
   controls.enableZoom = true;
   controls.enableRotate = true;
-
-  controls.minDistance = 3;
-  controls.maxDistance = 18;
-
+  controls.minDistance = 1.0;
+  controls.maxDistance = 15;
   controls.target.copy(defaultCameraTarget);
   controls.update();
 
-  // Camera transition state used by the inspector.
+  // Camera transition state
   const cameraState = {
     defaultCameraPosition,
     defaultCameraTarget,
-
     targetCameraPosition: defaultCameraPosition.clone(),
     targetCameraTarget: defaultCameraTarget.clone(),
-
     cameraTransition: false
   };
+
+  function focusOn(targetPosition, distance = 3.2) {
+    cameraState.targetCameraTarget.copy(targetPosition);
+
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    if (dir.lengthSq() < 0.001) dir.set(0, 0.2, 1).normalize();
+
+    cameraState.targetCameraPosition.copy(targetPosition).add(dir.multiplyScalar(distance));
+    cameraState.cameraTransition = true;
+  }
+
+  function resetCamera() {
+    cameraState.targetCameraPosition.copy(defaultCameraPosition);
+    cameraState.targetCameraTarget.copy(defaultCameraTarget);
+    cameraState.cameraTransition = true;
+  }
 
   return {
     viewer,
@@ -121,6 +130,8 @@ export function createSceneManager() {
     camera,
     renderer,
     controls,
-    cameraState
+    cameraState,
+    focusOn,
+    resetCamera
   };
 }

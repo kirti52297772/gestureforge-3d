@@ -1,261 +1,327 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta
     name="description"
-    content="GestureForge 3D - Interactive engineering and gesture-based machine exploration."
+    content="GestureForge Med 3D - Computer Vision & Hand Gesture Controlled 3D Medical Anatomy & Clinical Education Workstation."
   />
-
-  <title>GestureForge 3D | Machine Explorer</title>
+  <title>GestureForge Med 3D | Clinical Anatomy & Case Study Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <div id="app">
 
-    <!-- Application Header -->
+    <!-- Top Medical Navigation & Telemetry Bar -->
     <header class="topbar">
-      <div class="brand">
-        GESTURE<span>FORGE</span> 3D
+      <div class="topbar-left">
+        <div class="brand">
+          <div class="brand-badge">CLINICAL 3D</div>
+          GESTURE<span>FORGE</span> <span class="brand-med">MED 3D</span>
+        </div>
+        <div class="brand-subtitle">SURGICAL & ANATOMICAL VISUALIZATION SUITE</div>
       </div>
 
-      <div class="system-status">
-        <span class="status-dot"></span>
-        SYSTEM ONLINE
+      <!-- Quick Organ Switcher Pills -->
+      <div class="organ-switcher-strip" id="organSwitcher">
+        <button class="organ-pill active" data-organ="heart">
+          <span class="organ-icon">❤️</span> Heart (Cardiology)
+        </button>
+        <button class="organ-pill" data-organ="brain">
+          <span class="organ-icon">🧠</span> Brain (Neurology)
+        </button>
+        <button class="organ-pill" data-organ="lungs">
+          <span class="organ-icon">🫁</span> Lungs (Pulmonology)
+        </button>
+        <button class="organ-pill" data-organ="kidney">
+          <span class="organ-icon">🫘</span> Kidney (Nephrology)
+        </button>
+        <button class="organ-pill" data-organ="eye">
+          <span class="organ-icon">👁️</span> Eye (Ophthalmology)
+        </button>
+      </div>
+
+      <!-- Real-time Status Badges -->
+      <div class="topbar-right">
+        <div class="telemetry-pill cardiac-telemetry" id="bpmTelemetry">
+          <span class="pulse-dot"></span>
+          <span class="bpm-num" id="bpmValue">72</span> <span class="bpm-unit">BPM</span>
+        </div>
+
+        <div class="telemetry-pill vision-telemetry">
+          <span class="status-dot" id="headerVisionDot"></span>
+          <span id="headerVisionText">CAMERA OFF</span>
+        </div>
+
+        <div class="telemetry-pill fps-telemetry">
+          <span id="fpsBadge">60 FPS</span>
+        </div>
       </div>
     </header>
 
-    <!-- Main Application Layout -->
-    <main class="layout">
+    <!-- Main Clinical Workstation Layout -->
+    <main class="clinical-layout">
 
-      <!-- Left: 3D Machine Explorer -->
-      <section class="main-content">
-
-        <div class="panel-heading">
-          <div class="eyebrow">
-            INTERACTIVE ENGINEERING LAB
-          </div>
-
-          <h1>Machine Explorer</h1>
-
-          <p class="subtitle">
-            Explore a 3D mechanical assembly using mouse
-            controls and hand gestures.
-          </p>
+      <!-- LEFT: Side-by-Side Anatomical Hierarchy Browser -->
+      <aside class="panel anatomy-browser-panel">
+        <div class="panel-header">
+          <div class="panel-eyebrow">ANATOMICAL HIERARCHY</div>
+          <h2>Organ Structures</h2>
+          <p class="panel-caption">Select any structure to highlight in 3D, inspect physiological data, and open case studies.</p>
         </div>
 
-        <!-- Three.js Viewer -->
-        <div class="viewer" id="viewer">
+        <div class="search-box-wrap">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="anatomySearch"
+            class="anatomy-search-input"
+            placeholder="Search parts (e.g. Ventricle, Aorta, Valve)..."
+          />
+        </div>
 
-          <div class="viewer-label">
-            3D VIEWPORT / LIVE RENDER
-          </div>
+        <div class="category-tabs" id="categoryTabs">
+          <!-- Populated dynamically: All, Chambers, Great Vessels, Valves... -->
+        </div>
 
-          <div id="handCursor" class="hand-cursor"></div>
+        <div class="anatomy-list-container" id="anatomyList">
+          <!-- Populated dynamically with rich cards -->
+        </div>
+      </aside>
 
-          <!-- Gesture Recognition Overlay -->
-          <div class="gesture-panel">
+      <!-- CENTER: 3D Medical Viewport & Real-time ECG -->
+      <section class="viewport-section">
+        <div class="viewer-card">
 
-            <div class="gesture-panel-heading">
-              LIVE GESTURE RECOGNITION
+          <!-- 3D Viewport -->
+          <div class="viewer" id="viewer">
+            <!-- HUD Overlays -->
+            <div class="viewer-hud-top">
+              <div class="hud-tag">
+                <span class="hud-live-indicator"></span>
+                <span>3D SURGICAL VIEWPORT / LIVE RENDER</span>
+              </div>
+              <div class="hud-active-organ" id="hudActiveOrgan">HUMAN HEART (ALM0006 NIH 3D)</div>
             </div>
 
-            <div class="gesture-status">
-              <span class="status-dot"></span>
-              <span id="trackingStatus">
-                CAMERA OFF
-              </span>
+            <!-- Hand Cursor Indicator -->
+            <div id="handCursor" class="hand-cursor">
+              <div class="cursor-crosshair"></div>
+              <div class="cursor-label">PINCH TO SELECT</div>
             </div>
 
-            <div class="gesture-result">
-              <div class="gesture-label">
-                DETECTED GESTURE
+            <!-- Computer Vision Live Gesture HUD -->
+            <div class="gesture-hud">
+              <div class="gesture-hud-header">
+                <div class="gesture-dot" id="gestureDot"></div>
+                <span>COMPUTER VISION HUD</span>
               </div>
 
-              <div id="gestureName">
-                NO HAND DETECTED
+              <div class="gesture-hud-main">
+                <div class="gesture-icon" id="gestureIcon">📷</div>
+                <div class="gesture-info">
+                  <div class="gesture-title" id="gestureName">CAMERA OFF</div>
+                  <div class="gesture-sub" id="gestureHint">Enable hand tracking to manipulate organs in 3D.</div>
+                </div>
+              </div>
+
+              <div class="gesture-legend-mini">
+                <span>🖐️ Palm: Pause</span> &bull; 
+                <span>🤏 Pinch: Select</span> &bull; 
+                <span>✊ Fist: Rotate</span>
               </div>
             </div>
 
-            <p class="gesture-hint" id="gestureHint">
-              Enable hand tracking to begin.
-            </p>
-
+            <!-- Viewport Caliper Measurement Overlay (Optional) -->
+            <div id="caliperOverlay" class="caliper-hud" style="display: none;">
+              <span>CALIPER: </span><span id="caliperValue">0.0 mm</span>
+            </div>
           </div>
+
+          <!-- Synchronized ECG / EKG Physiological Strip -->
+          <div class="ecg-strip-container" id="ecgContainer">
+            <div class="ecg-header">
+              <div class="ecg-title">
+                <span class="ecg-lead">LEAD II</span>
+                <span>CARDIAC RHYTHM TRACE (P-Q-R-S-T)</span>
+              </div>
+              <div class="ecg-controls">
+                <label for="bpmSlider">RATE:</label>
+                <input type="range" id="bpmSlider" min="45" max="150" value="72" class="bpm-range">
+                <span id="bpmSliderLabel">72 BPM</span>
+                <button class="audio-toggle-btn" id="audioToggleBtn" title="Toggle Stethoscope Heartbeat Sound">
+                  <span id="audioIcon">🔇</span> Audio
+                </button>
+              </div>
+            </div>
+            <canvas id="ecgCanvas" class="ecg-canvas"></canvas>
+          </div>
+
+          <!-- Viewport Surgical Action Toolbar -->
+          <div class="viewport-toolbar">
+            <button class="tool-btn primary" id="rotate">
+              <span>⏸</span> Pause Orbit
+            </button>
+            <button class="tool-btn" id="explode">
+              <span>🧩</span> Dissect / Explode View
+            </button>
+            <button class="tool-btn" id="xrayToggle">
+              <span>🩻</span> X-Ray / CT Mode
+            </button>
+            <button class="tool-btn" id="reset">
+              <span>🔄</span> Reset Camera
+            </button>
+          </div>
+
         </div>
-
-        <!-- Main Controls -->
-        <div class="controls">
-
-          <button class="action primary" id="rotate">
-            Pause Rotation
-          </button>
-
-          <button class="action" id="explode">
-            Exploded View
-          </button>
-
-          <button class="action" id="reset">
-            Reset View
-          </button>
-
-        </div>
-
       </section>
 
-      <!-- Right: Information and Controls -->
-      <aside class="side">
+      <!-- RIGHT: Tabbed Medical Dossier, Case Studies & Computer Vision -->
+      <aside class="panel inspector-panel">
+        <div class="inspector-tabs">
+          <button class="tab-btn active" data-tab="tab-dossier">
+            <span>🔬</span> Anatomy Dossier
+          </button>
+          <button class="tab-btn" data-tab="tab-case-study">
+            <span>📋</span> Case Studies
+          </button>
+          <button class="tab-btn" data-tab="tab-vision">
+            <span>📷</span> Hand Tracking
+          </button>
+        </div>
 
-        <!-- Assembly Status -->
-        <section class="panel">
+        <!-- TAB 1: Anatomical Dossier & Wikipedia Integration -->
+        <div class="tab-content active" id="tab-dossier">
+          <div class="dossier-hero">
+            <div class="dossier-badge" id="inspectType">Anatomical Structure</div>
+            <h2 id="inspectName" class="dossier-title">Select a Structure</h2>
+            <div id="inspectLatin" class="dossier-latin">Terminologia Anatomica</div>
+          </div>
 
-          <h2>Assembly Status</h2>
-
-          <div class="metric">
-            <div class="metric-label">3D ENGINE</div>
-            <div class="metric-value" id="engineStatus">
-              INITIALIZING
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="m-label">HEMODYNAMICS / PRESSURES</div>
+              <div class="m-value" id="inspectHemodynamics">—</div>
+            </div>
+            <div class="metric-card">
+              <div class="m-label">COORDINATES (X, Y, Z)</div>
+              <div class="m-value" id="inspectPosition">—</div>
+            </div>
+            <div class="metric-card full-span">
+              <div class="m-label">SCALE / DIMENSIONS</div>
+              <div class="m-value" id="inspectDimensions">—</div>
             </div>
           </div>
 
-          <div class="metric">
-            <div class="metric-label">FRAME RATE</div>
-            <div class="metric-value" id="fpsValue">
-              -- FPS
-            </div>
+          <div class="dossier-description-card">
+            <div class="desc-heading">FUNCTIONAL ANATOMY & PHYSIOLOGY</div>
+            <p id="inspectDescription" class="desc-text">
+              Select any anatomical structure from the 3D model or left hierarchy panel to examine clinical function, blood supply, and medical research.
+            </p>
           </div>
 
-          <div class="metric">
-            <div class="metric-label">RENDER PERFORMANCE</div>
-            <div class="metric-value" id="renderStatus">
-              STARTING
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">SELECTED COMPONENT</div>
-            <div class="metric-value" id="selectedPart">
-              Gear Assembly
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">CONTROL MODE</div>
-            <div class="metric-value" id="controlMode">
-              MOUSE + KEYBOARD
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">HAND TRACKING</div>
-            <div class="metric-value" id="handStatus">
-              CAMERA OFF
-            </div>
-          </div>
-
-        </section>
-
-        <!-- Component Inspector -->
-        <section class="panel">
-
-          <h2>Component Inspector</h2>
-
-          <div class="metric">
-            <div class="metric-label">COMPONENT NAME</div>
-            <div class="metric-value" id="inspectName">
-              No component selected
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">COMPONENT TYPE</div>
-            <div class="metric-value" id="inspectType">—</div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">PURPOSE</div>
-            <div class="metric-value" id="inspectDescription">
-              Select a component to see its purpose.
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">POSITION (X, Y, Z)</div>
-            <div class="metric-value" id="inspectPosition">—</div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-label">DIMENSIONS</div>
-            <div class="metric-value" id="inspectDimensions">—</div>
-          </div>
-
-          <div class="controls vertical-controls">
-
-            <button class="action primary" id="focusComponent">
-              Focus Component
+          <div class="dossier-actions">
+            <button class="action primary full-width" id="inspectWikiBtn" disabled>
+              <span>📖</span> Open Wikipedia & Medical Papers
             </button>
+            <div class="action-btn-row">
+              <button class="action" id="focusComponent" disabled>
+                <span>🎯</span> Focus Camera
+              </button>
+              <button class="action" id="clearSelection">
+                <span>✕</span> Clear
+              </button>
+            </div>
+          </div>
+        </div>
 
-            <button class="action" id="clearSelection">
-              Clear Selection
-            </button>
+        <!-- TAB 2: Clinical Case Studies & Student Quiz -->
+        <div class="tab-content" id="tab-case-study">
+          <div id="caseStudyContent">
+            <!-- Rendered dynamically by caseStudyPanel.js -->
+          </div>
+        </div>
 
+        <!-- TAB 3: Computer Vision & Hand Tracking Setup -->
+        <div class="tab-content" id="tab-vision">
+          <div class="panel-header">
+            <h2>Hand Tracking Controls</h2>
+            <p class="panel-caption">Control the 3D anatomical viewer hands-free via real-time computer vision.</p>
           </div>
 
-        </section>
-
-        <!-- Gesture Controls -->
-        <section class="panel">
-
-          <h2>Gesture Controls</h2>
-
-          <div class="gesture-instructions">
-            <p>✋ Open Palm — Pause / Resume Rotation</p>
-            <p>🤏 Pinch — Select Component</p>
-            <p>↔ Move Hand — Rotate Assembly</p>
+          <div class="vision-status-card">
+            <div class="v-status-row">
+              <span class="v-label">TRACKING ENGINE:</span>
+              <span class="v-val" id="handStatus">CAMERA OFF</span>
+            </div>
+            <div class="v-status-row">
+              <span class="v-label">INTERACTION MODE:</span>
+              <span class="v-val" id="controlMode">MOUSE + TOUCH</span>
+            </div>
+            <div class="v-status-row">
+              <span class="v-label">3D ENGINE:</span>
+              <span class="v-val" id="engineStatus">INITIALIZING</span>
+            </div>
+            <div class="v-status-row">
+              <span class="v-label">ACTIVE PART:</span>
+              <span class="v-val highlight" id="selectedPart">None Selected</span>
+            </div>
           </div>
 
-          <button class="action primary full-width" id="cameraButton">
-            Enable Hand Tracking
+          <button class="action primary full-width camera-start-btn" id="cameraButton">
+            <span>📷</span> Enable Hand Tracking
           </button>
 
+          <!-- Webcam Video and Landmark Canvas Preview -->
           <div class="camera-preview">
-
-            <video
-              id="webcam"
-              autoplay
-              playsinline
-              muted
-            ></video>
-
+            <video id="webcam" autoplay playsinline muted></video>
             <canvas id="handCanvas"></canvas>
-
+            <div class="camera-overlay-badge">LIVE TRACKING HUD</div>
           </div>
 
-        </section>
-
-        <!-- Keyboard Shortcuts -->
-        <section class="panel">
-
-          <h2>Keyboard Shortcuts</h2>
-
-          <div class="shortcut-list">
-            <p><kbd>A</kbd> / <kbd>SPACE</kbd> Toggle Rotation</p>
-            <p><kbd>W</kbd> / <kbd>S</kbd> Rotate Up / Down</p>
-            <p><kbd>Q</kbd> / <kbd>D</kbd> Rotate Left / Right</p>
-            <p><kbd>+</kbd> / <kbd>-</kbd> Zoom In / Out</p>
-            <p><kbd>E</kbd> Exploded View</p>
-            <p><kbd>R</kbd> Reset View</p>
-            <p><kbd>ESC</kbd> Clear Selection</p>
+          <div class="gesture-guide-card">
+            <div class="guide-heading">SUPPORTED GESTURES</div>
+            <div class="gesture-guide-item">
+              <span class="g-icon">🖐️</span>
+              <div class="g-text"><strong>Open Palm:</strong> Pause or resume continuous organ rotation.</div>
+            </div>
+            <div class="gesture-guide-item">
+              <span class="g-icon">🤏</span>
+              <div class="g-text"><strong>Pinch:</strong> Select targeted anatomical structure in 3D.</div>
+            </div>
+            <div class="gesture-guide-item">
+              <span class="g-icon">✊</span>
+              <div class="g-text"><strong>Fist:</strong> Move hand to orbit and rotate organ freely.</div>
+            </div>
+            <div class="gesture-guide-item">
+              <span class="g-icon">✌️</span>
+              <div class="g-text"><strong>Two Fingers:</strong> Zoom into microscopic anatomical details.</div>
+            </div>
+            <div class="gesture-guide-item">
+              <span class="g-icon">👍</span>
+              <div class="g-text"><strong>Thumbs Up:</strong> Toggle surgical dissection view.</div>
+            </div>
           </div>
 
-        </section>
+          <div class="keyboard-guide-card">
+            <div class="guide-heading">KEYBOARD SHORTCUTS</div>
+            <div class="shortcut-grid">
+              <div><kbd>Space</kbd> Toggle Rotation</div>
+              <div><kbd>E</kbd> Dissect / Explode</div>
+              <div><kbd>X</kbd> X-Ray Mode</div>
+              <div><kbd>H</kbd> Heartbeat Sound</div>
+              <div><kbd>W/S</kbd> Tilt Up / Down</div>
+              <div><kbd>A/D</kbd> Orbit Left / Right</div>
+              <div><kbd>1-5</kbd> Switch Organs</div>
+              <div><kbd>R</kbd> Reset View</div>
+              <div><kbd>Esc</kbd> Clear Selection</div>
+            </div>
+          </div>
+        </div>
 
       </aside>
 
@@ -265,6 +331,5 @@
 
   <!-- Vite JavaScript Entry Point -->
   <script type="module" src="/src/main.js"></script>
-
 </body>
 </html>
