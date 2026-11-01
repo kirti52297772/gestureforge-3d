@@ -5,6 +5,9 @@
 
 import * as THREE from 'three';
 
+const NIH_CENTER = new THREE.Vector3(16.76, -119.96, -1.09);
+const NIH_SCALE = 2.4 / 145.0;
+
 export function createComponentInspector({
   cameraState,
   focusOn,
@@ -123,15 +126,11 @@ export function createComponentInspector({
   function focusCurrent() {
     if (!currentPart) return;
 
-    if (currentPart.cameraFocus) {
-      const cf = currentPart.cameraFocus;
-      // Convert to normalized coordinates
-      cameraState.targetCameraPosition.set(cf.position.x * 0.02, cf.position.y * 0.02, cf.position.z * 0.02);
-      cameraState.targetCameraTarget.set(cf.target.x * 0.02, cf.target.y * 0.02, cf.target.z * 0.02);
-      cameraState.cameraTransition = true;
-    } else if (currentPart.pinPosition) {
-      const wp = new THREE.Vector3(currentPart.pinPosition.x * 0.016, currentPart.pinPosition.y * 0.016, currentPart.pinPosition.z * 0.016);
-      focusOn(wp, 2.5);
+    if (currentPart.pinPosition) {
+      const wp = new THREE.Vector3(currentPart.pinPosition.x, currentPart.pinPosition.y, currentPart.pinPosition.z)
+        .sub(NIH_CENTER)
+        .multiplyScalar(NIH_SCALE);
+      focusOn(wp, 2.2);
     }
   }
 

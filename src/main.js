@@ -569,13 +569,10 @@ function animate() {
 
   // Smooth cardiac systolic-diastolic scaling
   systolicScale += (targetSystolicScale - systolicScale) * 0.18;
-  if (activeOrganId === 'heart' && cardiacModelSuite) {
-    if (cardiacModelSuite.dissectedGroup) {
-      cardiacModelSuite.dissectedGroup.scale.setScalar(systolicScale);
-    }
-    if (cardiacModelSuite.wholeGroup) {
-      cardiacModelSuite.wholeGroup.scale.setScalar(systolicScale);
-    }
+  if (activeOrganId === 'heart' && cardiacModelSuite && cardiacModelSuite.group) {
+    const s = (2.4 / 145.0) * systolicScale;
+    cardiacModelSuite.group.scale.setScalar(s);
+    cardiacModelSuite.group.position.set(16.76 * -s, -119.96 * -s, -1.09 * -s);
   }
 
   // Rotate and pulse 3D Pins

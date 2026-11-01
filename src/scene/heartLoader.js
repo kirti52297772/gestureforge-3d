@@ -9,13 +9,19 @@ import { HEART_ANATOMY } from '../data/heartAnatomy.js';
 
 const loader = new GLTFLoader();
 
-// Standard bounding center and scale factor for NIH models
+// Exact bounding center and normalization scale for NIH models
 const NIH_CENTER = new THREE.Vector3(16.76, -119.96, -1.09);
 const NIH_SCALE = 2.4 / 145.0; // Normalizes model to ~2.4 scene units
 
 export async function loadCardiacModelSuite(scene) {
+  // Master container placed in scene
   const masterHeartGroup = new THREE.Group();
   masterHeartGroup.name = 'Cardiac Model Suite';
+
+  // Apply unified coordinate transformation so all children in raw NIH coordinates
+  // are automatically scaled to ~2.4 units and centered at (0, 0, 0)
+  masterHeartGroup.scale.setScalar(NIH_SCALE);
+  masterHeartGroup.position.copy(NIH_CENTER).multiplyScalar(-NIH_SCALE);
 
   // Containers for whole model and dissected sectional parts
   const wholeGroup = new THREE.Group();
@@ -24,47 +30,42 @@ export async function loadCardiacModelSuite(scene) {
   const dissectedGroup = new THREE.Group();
   dissectedGroup.name = 'NIH Dissected Sections (A, B, C)';
 
-  // 1. Load Whole Model
-  try {
-    const wholeGltf = await loader.loadAsync('/models/heart/alm0006_whole-nih3d.glb');
-    const wholeMesh = wholeGltf.scene;
-
-    wholeMesh.position.sub(NIH_CENTER);
-    wholeMesh.scale.setScalar(NIH_SCALE);
-
-    applyMedicalMaterial(wholeMesh, 'myocardium');
-    wholeMesh.userData = { partId: 'left-ventricle', partName: 'Human Heart (Whole)' };
-
-    wholeGroup.add(wholeMesh);
-  } catch (err) {
-    console.warn('Could not load alm0006_whole-nih3d.glb, falling back to heart.glb:', err);
-    try {
-      const fallback = await loader.loadAsync('/models/heart/heart.glb');
-      const mesh = fallback.scene;
-      normalizeGenericModel(mesh, 2.5);
-      applyMedicalMaterial(mesh, 'myocardium');
-      wholeGroup.add(mesh);
-    } catch (e) {
-      console.error('Failed to load fallback heart:', e);
-    }
-  }
-
-  // 2. Load Dissected Sections A, B, C
-  const sectionFiles = [
-    { file: 'alm0006_a-nih3d.glb', id: 'part-a', name: 'Section A: Great Vessels & Atria', vec: new THREE.Vector3(0, 1.2, 0.4), color: '#a0485c' },
-    { file: 'alm0006_b-nih3d.glb', id: 'part-b', name: 'Section B: Valvular Plane & Mid-Heart', vec: new THREE.Vector3(-1.4, 0, 0.3), color: '#8f3c4c' },
-    { file: 'alm0006_c-nih3d.glb', id: 'part-c', name: 'Section C: Ventricles & Apical Myocardium', vec: new THREE.Vector3(0.6, -1.3, -0.3), color: '#7b2e3e' }
-  ];
-
   const dissectibleParts = [];
 
-  for (const item of sectionFiles) {
-    try {
-      const gltf = await loader.loadAsync(`/models/heart/${item.file}`);
-      const partScene = gltf.scene;
+  // Section files configuration (raw displacement vectors in NIH units)
+  const sectionFiles = [
+    {
+      file: 'alm0006_a-nih3d.glb',
+      id: 'part-a',
+      name: 'Section A: Great Vessels & Atria',
+      vec: new THREE.Vector3(0, 72, 25),
+      color: '#b04358'
+    },
+    {
+      file: 'alm0006_b-nih3d.glb',
+      id: 'part-b',
+      name: 'Section B: Valvular Plane & Mid-Heart',
+      vec: new THREE.Vector3(-80, 0, 20),
+      color: '#94384a'
+    },
+    {
+      file: 'alm0006_c-nih3d.glb',
+      id: 'part-c',
+      name: 'Section C: Ventricles & Apical Myocardium',
+      vec: new THREE.Vector3(35, -75, -20),
+      color: '#7e2d3e'
+    }
+  ];
 
-      partScene.position.sub(NIH_CENTER);
-      partScene.scale.setScalar(NIH_SCALE);
+  // 1. Load Dissected Sections A, B, C in parallel for maximum speed
+  try {
+    const gltfResults = await Promise.all(
+      sectionFiles.map(s => loader.loadAsync(`/models/heart/${s.file}`))
+    );
+
+    gltfResults.forEach((gltf, idx) => {
+      const partScene = gltf.scene;
+      const item = sectionFiles[idx];
 
       applyMedicalMaterial(partScene, 'sectional', item.color);
       partScene.userData = {
@@ -82,12 +83,36 @@ export async function loadCardiacModelSuite(scene) {
       });
 
       dissectedGroup.add(partScene);
-    } catch (e) {
-      console.warn(`Could not load section ${item.file}:`, e);
+    });
+
+    console.log('Dissected sections A, B, C loaded successfully.');
+  } catch (err) {
+    console.warn('Could not load all sectional files, trying whole model:', err);
+  }
+
+  // 2. Load Whole Model (or heart.glb fallback)
+  try {
+    const wholeGltf = await loader.loadAsync('/models/heart/alm0006_whole-nih3d.glb');
+    const wholeMesh = wholeGltf.scene;
+    applyMedicalMaterial(wholeMesh, 'myocardium', '#9e394d');
+    wholeMesh.userData = { partId: 'left-ventricle', partName: 'Human Heart (Whole)' };
+    wholeGroup.add(wholeMesh);
+  } catch (e) {
+    console.warn('Could not load alm0006_whole-nih3d.glb, attempting heart.glb fallback:', e);
+    try {
+      const fallback = await loader.loadAsync('/models/heart/heart.glb');
+      const mesh = fallback.scene;
+      // heart.glb has its own coordinates; center and scale it
+      normalizeGenericModel(mesh, 145);
+      mesh.position.copy(NIH_CENTER);
+      applyMedicalMaterial(mesh, 'myocardium');
+      wholeGroup.add(mesh);
+    } catch (fallbackErr) {
+      console.error('All heart model files failed to load:', fallbackErr);
     }
   }
 
-  // By default, show dissected group (fits together seamlessly at distance 0, separates in dissection view)
+  // Choose primary group to display (dissected sections fit seamlessly into whole heart when p=0)
   if (dissectedGroup.children.length > 0) {
     wholeGroup.visible = false;
     masterHeartGroup.add(dissectedGroup);
@@ -97,7 +122,7 @@ export async function loadCardiacModelSuite(scene) {
     masterHeartGroup.add(wholeGroup);
   }
 
-  // 3. Create 3D Landmark Hotspot Pins
+  // 3. Create 3D Landmark Hotspot Pins directly in raw NIH coordinates
   const pinsGroup = new THREE.Group();
   pinsGroup.name = 'Anatomical Pins';
 
@@ -126,11 +151,12 @@ function applyMedicalMaterial(object, type = 'myocardium', customColor = null) {
       child.castShadow = true;
       child.receiveShadow = true;
 
+      // Ensure double-sided rendering for anatomical scans
       const mat = new THREE.MeshStandardMaterial({
-        color: customColor || '#8a3344',
-        roughness: 0.38,
+        color: customColor || '#a83c50',
+        roughness: 0.35,
         metalness: 0.12,
-        bumpScale: 0.05
+        side: THREE.DoubleSide
       });
 
       child.userData.standardMaterial = mat;
@@ -148,11 +174,11 @@ export function setHeartXRayMode(object, enabled) {
           child.userData.xrayMaterial = new THREE.MeshPhysicalMaterial({
             color: '#39d6e7',
             transparent: true,
-            opacity: 0.35,
+            opacity: 0.4,
             roughness: 0.1,
             metalness: 0.8,
             transmission: 0.6,
-            wireframe: false
+            side: THREE.DoubleSide
           });
         }
         child.material = child.userData.xrayMaterial;
@@ -182,15 +208,11 @@ function createAnatomicalPins(anatomyData) {
       partData: item
     };
 
-    // Transform pin position using NIH center and scale
-    const worldPos = new THREE.Vector3(item.pinPosition.x, item.pinPosition.y, item.pinPosition.z)
-      .sub(NIH_CENTER)
-      .multiplyScalar(NIH_SCALE);
+    // Position directly at raw anatomical coordinates
+    pinGroup.position.set(item.pinPosition.x, item.pinPosition.y, item.pinPosition.z);
 
-    pinGroup.position.copy(worldPos);
-
-    // Glowing core sphere
-    const sphereGeo = new THREE.SphereGeometry(0.045, 16, 16);
+    // Glowing core sphere (sized in raw units: 2.8 units * 0.01655 ≈ 0.046 world units)
+    const sphereGeo = new THREE.SphereGeometry(2.8, 16, 16);
     const sphereMat = new THREE.MeshBasicMaterial({
       color: '#39d6e7',
       transparent: true,
@@ -201,7 +223,7 @@ function createAnatomicalPins(anatomyData) {
     pinGroup.add(sphere);
 
     // Outer pulsing ring
-    const ringGeo = new THREE.RingGeometry(0.065, 0.085, 24);
+    const ringGeo = new THREE.RingGeometry(3.8, 5.2, 24);
     const ringMat = new THREE.MeshBasicMaterial({
       color: '#39e58c',
       side: THREE.DoubleSide,
@@ -214,10 +236,10 @@ function createAnatomicalPins(anatomyData) {
     pinGroup.add(ring);
 
     // Thin marker needle
-    const needleGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.14, 8);
+    const needleGeo = new THREE.CylinderGeometry(0.35, 0.35, 8.5, 8);
     const needleMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
     const needle = new THREE.Mesh(needleGeo, needleMat);
-    needle.position.y = -0.07;
+    needle.position.y = -4.25;
     pinGroup.add(needle);
 
     pins.push(pinGroup);
@@ -229,7 +251,7 @@ function createAnatomicalPins(anatomyData) {
 // ----------------------------------------------------------------------------
 // NORMALIZE GENERIC MODEL
 // ----------------------------------------------------------------------------
-function normalizeGenericModel(model, targetSize = 2.5) {
+function normalizeGenericModel(model, targetSize = 145) {
   const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
