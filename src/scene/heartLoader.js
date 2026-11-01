@@ -1,5 +1,6 @@
 
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as THREE from 'three';
 import { Box3, Vector3 } from 'three';
 
 const loader = new GLTFLoader();
@@ -160,4 +161,68 @@ export async function inspectHeartParts() {
     }
 
     console.log('========== INSPECTION COMPLETE ==========');
+}
+
+export async function loadHeartComparisonModels(scene) {
+
+    const files = [
+        'alm0006_a-nih3d.glb',
+        'alm0006_b-nih3d.glb',
+        'alm0006_c-nih3d.glb',
+        'alm0006_whole-nih3d.glb'
+    ];
+
+    const comparisonGroup = new THREE.Group();
+
+    const spacing = 3.2;
+
+    for (let i = 0; i < files.length; i++) {
+
+        const gltf = await loader.loadAsync(
+            `/models/heart/${files[i]}`
+        );
+
+        const model = gltf.scene;
+
+        // Calculate original dimensions
+        const box = new Box3().setFromObject(model);
+        const size = new Vector3();
+        const center = new Vector3();
+
+        box.getSize(size);
+        box.getCenter(center);
+
+        // Center the model
+        model.position.sub(center);
+
+        // Normalize model size
+        const maxDimension = Math.max(
+            size.x,
+            size.y,
+            size.z
+        );
+
+        if (maxDimension > 0) {
+            model.scale.setScalar(2.5 / maxDimension);
+        }
+
+        // Enable shadows
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+
+        // Place models side by side
+        model.position.x += (i - 1.5) * spacing;
+
+        comparisonGroup.add(model);
+
+        console.log('Comparison model loaded:', files[i]);
+    }
+
+    scene.add(comparisonGroup);
+
+    return comparisonGroup;
 }
