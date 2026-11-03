@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GestureForge Med 3D - Capstone Project Documentation</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.6;
+      font-size: 10.5pt;
+    }
+
+    .cover-page {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 90vh;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 40px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 9pt;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    h1.project-title {
+      font-size: 28pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .project-subtitle {
+      font-size: 14pt;
+      color: #475569;
+      margin-bottom: 30px;
+      font-weight: 500;
+    }
+
+    .meta-table {
+      margin-top: 40px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .meta-table td {
+      padding: 8px 0;
+      font-size: 10pt;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .meta-table td.label {
+      font-weight: 700;
+      color: #334155;
+      width: 25%;
+    }
+
+    .meta-table td.val {
+      color: #0f172a;
+    }
+
+    h2 {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 26pt;
+      margin-bottom: 12pt;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0369a1;
+      margin-top: 16pt;
+      margin-bottom: 6pt;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 12pt;
+      margin-bottom: 4pt;
+    }
+
+    p {
+      margin-bottom: 8pt;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10pt;
+    }
+
+    li {
+      margin-bottom: 4pt;
+    }
+
+    .highlight-box {
+      background: #f8fafc;
+      border-left: 4px solid #0284c7;
+      padding: 10pt 12pt;
+      margin: 10pt 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 10pt;
+    }
+
+    .math-box {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 8pt 12pt;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5pt;
+      margin: 8pt 0;
+      color: #0f172a;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12pt 0;
+      font-size: 9.5pt;
+    }
+
+    table.data-table th, table.data-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6pt 8pt;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f1f5f9;
+      color: #0369a1;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9pt;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10pt;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5pt;
+      line-height: 1.45;
+      margin: 10pt 0;
+      page-break-inside: avoid;
+    }
+
+    .qa-card {
+      background: #fdfefe;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      page-break-inside: avoid;
+    }
+
+    .qa-q {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4pt;
+    }
+
+    .qa-a {
+      color: #334155;
+      font-size: 9.8pt;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-note {
+      font-size: 8pt;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 30pt;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="badge">CAPSTONE PROJECT COMPREHENSIVE DOCUMENTATION</div>
+    <h1 class="project-title">GestureForge Med 3D</h1>
+    <div class="project-subtitle">
+      A Real-Time Computer Vision and WebGL Platform for Touchless 3D Anatomical Dissection, Physiological Telemetry, and Clinical Case Study Education
+    </div>
+
+    <div class="highlight-box">
+      <strong>Core Innovation:</strong> Transforms standard low-cost client webcams into sterile, touchless 3D surgical controllers using MediaPipe ML pipelines, synchronized with authentic NIH 3D anatomical models, dual-tone Web Audio cardiac sound synthesis, real-time Lead II ECG waveform generation, and automated Wikipedia REST API medical research dossier integration.
+    </div>
+
+    <table class="meta-table">
+      <tr>
+        <td class="label">Project Title:</td>
+        <td class="val"><strong>GestureForge Med 3D (Clinical Anatomy & Surgical Telemetry Suite)</strong></td>
+      </tr>
+      <tr>
+        <td class="label">Domain:</td>
+        <td class="val">Computer Vision, Medical Informatics, 3D Web Graphics, Healthcare EdTech</td>
+      </tr>
+      <tr>
+        <td class="label">Frontend Technologies:</td>
+        <td class="val">Three.js (WebGL / PBR Shaders), MediaPipe Tasks Vision (WASM / GPU), Vite</td>
+      </tr>
+      <tr>
+        <td class="label">Telemetry & Audio:</td>
+        <td class="val">Web Audio API (Synthesized Biquad S1/S2 Filters), HTML5 Canvas ECG Monitor</td>
+      </tr>
+      <tr>
+        <td class="label">Medical Datasets:</td>
+        <td class="val">NIH 3D Print Exchange (ALM0006 Segmented Heart), Wikipedia REST API, NCBI PubMed</td>
+      </tr>
+      <tr>
+        <td class="label">Target Audience:</td>
+        <td class="val">Medical Students, Anatomists, Surgical Residents, Healthcare Educators</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><strong>Executive Summary & Problem Statement</strong></li>
+    <li><strong>Complete System Architecture & Data Flow</strong></li>
+    <li><strong>Module-by-Module Code Implementation Breakdown</strong>
+      <ul>
+        <li>3.1 Computer Vision & Hand Landmark Tracking</li>
+        <li>3.2 Algorithmic Gesture Recognition Engine</li>
+        <li>3.3 3D Rendering, Lighting, & Normalization</li>
+        <li>3.4 Segmented Anatomical Dissection (Exploded View)</li>
+        <li>3.5 3D Raycasting & Landmark Hotspot Selection</li>
+        <li>3.6 Physiological Telemetry (ECG Waveform & Web Audio)</li>
+        <li>3.7 Medical Knowledge Engine & Wikipedia API Integration</li>
+      </ul>
+    </li>
+    <li><strong>Mathematical & Algorithmic Formulations</strong></li>
+    <li><strong>Clinical Case Study & Student Assessment Framework</strong></li>
+    <li><strong>Viva Voce Defense: Evaluator Questions & High-Scoring Answers</strong></li>
+  </ol>
+
+  <!-- SECTION 1 -->
+  <div class="page-break"></div>
+  <h2>1. Executive Summary & Problem Statement</h2>
+
+  <h3>1.1 Clinical Background</h3>
+  <p>
+    Traditional anatomical education relies heavily on 2D textbooks, static plastic cadaver models, or expensive specialized virtual reality (VR) headsets that induce ocular fatigue and lack tactile integration. In sterile surgical theaters and pathology laboratories, surgeons cannot touch physical keyboards, mice, or touchscreens due to strict microbial aseptic field requirements.
+  </p>
+
+  <h3>1.2 The Proposed Solution</h3>
+  <p>
+    <strong>GestureForge Med 3D</strong> bridges this technological gap by providing an end-to-end, zero-latency, browser-based clinical workstation. Using a standard monocular webcam, the system tracks 21 spatial hand landmarks at 60 FPS using MediaPipe Tasks Vision WebAssembly (WASM). It enables touchless manipulation of high-fidelity 3D human organs (Heart, Brain, Lungs, Kidney, Eye), allowing users to orbit, zoom, dissect, and query anatomical substructures without physical contact.
+  </p>
+
+  <div class="highlight-box">
+    <strong>Key Contributions:</strong>
+    <ul>
+      <li><strong>Touchless Sterile Control:</strong> Intuitive gesture heuristics (Pinch selection, Open Palm freeze, Closed Fist orbit, Two-finger zoom, Thumbs-up dissection).</li>
+      <li><strong>Surgical Dissection Mechanics:</strong> Interpolates authentic segmented NIH CT scans along surgical vectors to reveal internal ventricles, papillary muscles, and valve planes.</li>
+      <li><strong>Physiological Telemetry:</strong> Real-time synchronized Lead II ECG oscilloscope coupled with Web Audio API stethoscope acoustic simulation (S1/S2 heart sounds).</li>
+      <li><strong>Evidence-Based Learning:</strong> Dynamic REST API integration with Wikipedia, NCBI PubMed, MedlinePlus, and interactive clinical case quizzes.</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 2 -->
+  <h2>2. Complete System Architecture & Data Flow</h2>
+  <p>
+    The system follows a modular, reactive architecture divided into four distinct computing layers:
+  </p>
+
+  <pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                        GESTUREFORGE MED 3D PIPELINE                    │
+└────────────────────────────────────────────────────────────────────────┘
+
+  [ Hardware Layer ]
+         │
+         ▼ (Webcam Stream: 640x480 @ 60Hz via getUserMedia)
+  [ Computer Vision Engine ]
+         │──> MediaPipe HandLandmarker (WASM + GPU Delegate)
+         │──> 21 3D Spatial Landmarks (Normalized Coordinates)
+         ▼
+  [ Gesture Recognition & Math Layer ]
+         │──> Euclidean Distance Check: d(ThumbTip, IndexTip) &lt; 0.055 -> PINCH
+         │──> Extension Ratio: d(Tip, Wrist) > 1.15 * d(Joint, Wrist)
+         │──> Coordinate Inversion & Transformation -> NDC [-1, 1]
+         ▼
+  [ 3D Rendering & Dissection Engine (Three.js) ]
+         │──> Camera & ACES Filmic Tone Mapping
+         │──> NIH ALM0006 Segmented Model Suite (Sections A, B, C)
+         │──> Surgical Vector Displacement: P(t) = P0 + t * V_explode
+         │──> GPU Raycasting (Raycaster -> Mesh / Pin Intersection)
+         ▼
+  [ Telemetry & Knowledge Engine ]
+         │──> Web Audio API: S1 (65->32Hz) & S2 (95->45Hz) Synthesizer
+         │──> HTML5 Canvas: Lead II P-Q-R-S-T Physiological Waveform
+         │──> Wikipedia REST API: Live Summary & Illustration Fetcher
+         └──> Clinical Case Studies & Student Self-Assessment Engine
+  </pre>
+
+  <!-- SECTION 3 -->
+  <div class="page-break"></div>
+  <h2>3. Module-by-Module Code Implementation Breakdown</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>File Path</th>
+        <th>Primary Responsibility</th>
+        <th>Key Functions / Exports</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>src/gestures/handTracker.js</code></td>
+        <td>Webcam capture, WASM initialization, frame detection loop</td>
+        <td><code>createHandTracker()</code>, <code>detectFrame()</code>, <code>drawHand()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/gestures/gestureRecognition.js</code></td>
+        <td>Mathematical landmark heuristics for gesture classification</td>
+        <td><code>recognizeGesture()</code>, <code>isFingerExtended()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/gestures/gestureControls.js</code></td>
+        <td>Binds gestures to 3D rotation, pinch raycasting, and zoom</td>
+        <td><code>createGestureControls()</code>, <code>handleLandmarks()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/scene/sceneManager.js</code></td>
+        <td>Three.js scene setup, studio lighting, OrbitControls, camera lerp</td>
+        <td><code>createSceneManager()</code>, <code>focusOn()</code>, <code>resetCamera()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/scene/heartLoader.js</code></td>
+        <td>NIH GLTF model suite loader, matrix normalization, 3D pins</td>
+        <td><code>loadCardiacModelSuite()</code>, <code>setHeartXRayMode()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/scene/organBuilder.js</code></td>
+        <td>Procedural 3D models for Brain, Lungs, Kidney, and Eye</td>
+        <td><code>createOrganModel()</code>, <code>buildBrainModel()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/features/explodedView.js</code></td>
+        <td>Dissection engine; separates sections along surgical vectors</td>
+        <td><code>createExplodedView()</code>, <code>toggleExplodedView()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/features/selection.js</code></td>
+        <td>Normalized Device Coordinate (NDC) raycasting engine</td>
+        <td><code>setupComponentSelection()</code>, <code>pickAtNdc()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/ui/ecgMonitor.js</code></td>
+        <td>Real-time Lead II P-Q-R-S-T cardiac waveform generator</td>
+        <td><code>createEcgMonitor()</code>, <code>getEcgVoltage()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/audio/heartAudio.js</code></td>
+        <td>Web Audio API S1/S2 acoustic synthesizer</td>
+        <td><code>createHeartAudio()</code>, <code>playS1()</code>, <code>playS2()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/ui/wikipediaModal.js</code></td>
+        <td>Live Wikipedia REST API reader and research link generator</td>
+        <td><code>createWikipediaModal()</code>, <code>openForPart()</code></td>
+      </tr>
+      <tr>
+        <td><code>src/ui/caseStudyPanel.js</code></td>
+        <td>Renders patient vignettes, pathophysiology, and quiz cards</td>
+        <td><code>createCaseStudyPanel()</code>, <code>render()</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.1 Computer Vision & Hand Landmark Tracking</h3>
+  <p>
+    Located in <code>src/gestures/handTracker.js</code>. The function <code>createHandTracker()</code> initializes Google MediaPipe's vision task model via <code>FilesetResolver.forVisionTasks()</code>. It fetches the lightweight 16-bit floating point model asset (<code>hand_landmarker.task</code>) configured with GPU delegation.
+  </p>
+  <pre>
+const vision = await FilesetResolver.forVisionTasks(
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+);
+handLandmarker = await HandLandmarker.createFromOptions(vision, {
+  baseOptions: {
+    modelAssetPath: '.../hand_landmarker.task',
+    delegate: 'GPU'
+  },
+  runningMode: 'VIDEO',
+  numHands: 1
+});
+  </pre>
+  <p>
+    During each animation frame, <code>detectForVideo(video, performance.now())</code> extracts 21 3D landmarks $(x, y, z)$. The 2D skeleton is drawn onto an HTML5 overlay canvas with cyan connecting vectors.
+  </p>
+
+  <h3>3.2 Algorithmic Gesture Recognition Engine</h3>
+  <p>
+    Located in <code>src/gestures/gestureRecognition.js</code>. Rather than relying on black-box neural gesture classifiers that consume excessive CPU, this module applies deterministic, rotation-invariant geometric heuristics:
+  </p>
+  <ul>
+    <li><strong>Pinch Select:</strong> Measures Euclidean distance between thumb tip (Landmark 4) and index fingertip (Landmark 8). If $d &lt; 0.055$, triggers surgical selection.</li>
+    <li><strong>Open Palm (Pause Rotation):</strong> Evaluates if all four fingers (Index, Middle, Ring, Pinky) are extended relative to their proximal joints.</li>
+    <li><strong>Closed Fist (Orbit Rotate):</strong> Evaluates if all fingers are curled toward the palm.</li>
+    <li><strong>Two-Finger Peace (Zoom):</strong> Evaluates if Index and Middle fingers are extended while Ring and Pinky are curled.</li>
+    <li><strong>Thumbs-Up (Dissect):</strong> Evaluates if the thumb tip is elevated above the wrist while all other digits are curled.</li>
+  </ul>
+
+  <!-- SECTION 4 -->
+  <div class="page-break"></div>
+  <h2>4. Mathematical & Algorithmic Formulations</h2>
+
+  <h3>4.1 Euclidean Pinch Metric</h3>
+  <p>
+    The distance between the thumb tip $(x_4, y_4)$ and index tip $(x_8, y_8)$ is calculated as:
+  </p>
+  <div class="math-box">
+    d_{\text{pinch}} = \sqrt{(x_4 - x_8)^2 + (y_4 - y_8)^2}
+  </div>
+  <p>
+    Selection activates when $d_{\text{pinch}} &lt; \tau$ where $\tau = 0.055$. A temporal debounce constraint ($t_{\text{current}} - t_{\text{last}} \ge 450\text{ ms}$) prevents inadvertent multi-triggering.
+  </p>
+
+  <h3>4.2 Viewport Mirroring & Coordinate Transformation</h3>
+  <p>
+    Because the user views a mirrored webcam feed, coordinates must undergo horizontal reflection and normalization to Three.js Normalized Device Coordinates (NDC) in the range $[-1, 1]$:
+  </p>
+  <div class="math-box">
+    x_{\text{NDC}} = (1 - x_{\text{landmark}}) \cdot 2 - 1 \\
+    y_{\text{NDC}} = 1 - 2 \cdot y_{\text{landmark}}
+  </div>
+
+  <h3>4.3 GPU Raycasting Unprojection</h3>
+  <p>
+    To determine which 3D anatomical structure lies under the user's pinch point, the 2D point is unprojected into a 3D ray $\vec{R}(t) = \vec{O} + t \vec{D}$ using the inverse of the camera's view-projection matrix:
+  </p>
+  <div class="math-box">
+    \vec{R}_{\text{world}} = \mathbf{M}_{\text{invProjection}} \cdot \mathbf{M}_{\text{invView}} \cdot \begin{bmatrix} x_{\text{NDC}} \\ y_{\text{NDC}} \\ 1 \\ 1 \end{bmatrix}
+  </div>
+
+  <h3>4.4 Segmented Dissection Vector Interpolation</h3>
+  <p>
+    Each anatomical puzzle section $i$ translates from its assembled resting position $\vec{P}_{0, i}$ to its dissected location along an anatomical displacement vector $\vec{V}_{\text{explode}, i}$:
+  </p>
+  <div class="math-box">
+    \vec{P}_i(t) = \vec{P}_{0, i} + t \cdot \vec{V}_{\text{explode}, i} \quad (t \in [0, 1])
+  </div>
+  <p>
+    For the NIH Heart ALM0006 segmented dataset:
+  </p>
+  <ul>
+    <li><strong>Section A (Aorta & Atria):</strong> $\vec{V}_A = (0, 72, 25)$ (Displaces superior-anteriorly).</li>
+    <li><strong>Section B (Valvular Plane):</strong> $\vec{V}_B = (-80, 0, 20)$ (Displaces laterally to the left).</li>
+    <li><strong>Section C (Ventricular Apex):</strong> $\vec{V}_C = (35, -75, -20)$ (Displaces inferior-posteriorly).</li>
+  </ul>
+
+  <h3>4.5 Piecewise Trigonometric Lead II ECG Waveform</h3>
+  <p>
+    The electrocardiogram voltage $V(\phi)$ is mathematically synthesized as a piecewise function over the cardiac cycle phase $\phi \in [0, 1]$:
+  </p>
+  <div class="math-box">
+    V(\phi) = 
+    \begin{cases}
+      \sin\left(\frac{\phi - 0.12}{0.10} \pi\right) \cdot 0.22, & 0.12 \le \phi &lt; 0.22 \quad \text{(P Wave)} \\
+      -\sin\left(\frac{\phi - 0.28}{0.02} \pi\right) \cdot 0.18, & 0.28 \le \phi &lt; 0.30 \quad \text{(Q Wave)} \\
+      1.35 \cdot \left(1 - 2\left|\frac{\phi - 0.30}{0.05} - 0.5\right|\right), & 0.30 \le \phi &lt; 0.35 \quad \text{(R Peak)} \\
+      -\sin\left(\frac{\phi - 0.35}{0.03} \pi\right) \cdot 0.35, & 0.35 \le \phi &lt; 0.38 \quad \text{(S Wave)} \\
+      \sin\left(\frac{\phi - 0.48}{0.14} \pi\right) \cdot 0.38, & 0.48 \le \phi &lt; 0.62 \quad \text{(T Wave)} \\
+      \mathcal{N}(0, 0.01), & \text{otherwise (Isoelectric Baseline)}
+    \end{cases}
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="page-break"></div>
+  <h2>5. Clinical Knowledge Engine & Case Studies</h2>
+
+  <h3>5.1 Real-Time Wikipedia REST API Query Engine</h3>
+  <p>
+    In <code>src/ui/wikipediaModal.js</code>, when an anatomical landmark (e.g., Left Ventricle) is selected, the application issues an asynchronous HTTP GET request:
+  </p>
+  <pre>
+https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(partTitle)}
+  </pre>
+  <p>
+    The response payload parses the JSON schema to extract:
+  </p>
+  <ul>
+    <li><code>title</code>: Official medical nomenclature.</li>
+    <li><code>description</code>: Physiological definition.</li>
+    <li><code>extract</code>: Comprehensive clinical narrative.</li>
+    <li><code>thumbnail.source</code>: High-resolution anatomical histological image.</li>
+  </ul>
+  <p>
+    It automatically constructs query URLs for <strong>NCBI PubMed</strong> (<code>https://pubmed.ncbi.nlm.nih.gov/?term=${query}</code>) and <strong>MedlinePlus</strong> for immediate peer-reviewed journal exploration.
+  </p>
+
+  <h3>5.2 High-Yield Clinical Case Scenarios</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Anatomical Part</th>
+        <th>Pathology / Case Title</th>
+        <th>Diagnostic Hallmarks</th>
+        <th>Clinical Management</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Left Ventricle</strong></td>
+        <td>Acute Anterolateral STEMI</td>
+        <td>ST elevation V1-V4, Troponin-I &gt; 4,800 ng/L, LVEF 35%</td>
+        <td>Primary PCI with drug-eluting stent &lt; 90 min, DAPT, Statin</td>
+      </tr>
+      <tr>
+        <td><strong>Right Ventricle</strong></td>
+        <td>Massive Pulmonary Embolism</td>
+        <td>McConnell sign, D-shaped LV, saddle embolus on CTPA</td>
+        <td>Systemic thrombolysis (Alteplase 100 mg), heparin anticoagulation</td>
+      </tr>
+      <tr>
+        <td><strong>Ascending Aorta</strong></td>
+        <td>Stanford Type A Dissection</td>
+        <td>&gt;20 mmHg inter-arm BP differential, intimal flap on CT</td>
+        <td>Emergent surgical replacement (Bentall), IV Esmolol (HR &lt; 60)</td>
+      </tr>
+      <tr>
+        <td><strong>Mitral Valve</strong></td>
+        <td>Degenerative Mitral Regurgitation</td>
+        <td>Flail P2 scallop, holosystolic apical murmur radiating to axilla</td>
+        <td>Quadrangular P2 resection, annuloplasty ring, or TEER (MitraClip)</td>
+      </tr>
+      <tr>
+        <td><strong>Interventricular Septum</strong></td>
+        <td>Hypertrophic Obstructive Cardiomyopathy</td>
+        <td>Asymmetric septal hypertrophy (24 mm), SAM with LVOT gradient</td>
+        <td>Beta-blockers, Mavacamten, surgical Morrow septal myectomy</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 6 -->
+  <div class="page-break"></div>
+  <h2>6. Viva Voce Defense: Evaluator Questions & Answers</h2>
+
+  <div class="qa-card">
+    <div class="qa-q">Q1: Why did you implement this in Three.js and MediaPipe Web rather than Python with OpenCV and PyBullet?</div>
+    <div class="qa-a">
+      <strong>Answer:</strong> "Implementing the pipeline natively in WebAssembly (WASM) and WebGL eliminates the latency, network overhead, and complex installation dependencies of Python servers. A browser-native solution runs entirely client-side on the user's GPU at 60 FPS, ensuring zero transmission latency and cross-platform accessibility on any medical workstation without requiring drivers or high-end graphics cards."
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q2: How do you prevent hand jitter and false gesture triggers during surgical inspection?</div>
+    <div class="qa-a">
+      <strong>Answer:</strong> "I implemented a three-tier stabilization pipeline: First, a deadzone filter of 0.0025 units discards high-frequency micro-tremors during palm rotation. Second, pinch selection uses an absolute Euclidean threshold of 0.055 combined with a 450 ms timestamp debounce check. Third, closed fist and open palm gestures check mutually exclusive finger flexion states, preventing conflicting command dispatches."
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q3: How does the system map 2D camera coordinates to accurate 3D spatial intersections?</div>
+    <div class="qa-a">
+      <strong>Answer:</strong> "The 2D fingertip coordinates are inverted to account for camera mirroring and mapped to Normalized Device Coordinates [-1, 1]. A THREE.Raycaster unprojects this point using the camera's inverse view-projection matrix to create a mathematical 3D ray in world space. The raycaster tests for surface bounding-box intersections with both the organ meshes and the 3D landmark pins, returning the nearest intersected object."
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q4: How did you solve the backface culling and coordinate offset issues on the NIH 3D model?</div>
+    <div class="qa-a">
+      <strong>Answer:</strong> "Medical CT segmented models from the NIH 3D Print Exchange often feature non-standard normal orientations. I resolved backface transparency by enabling <code>side: THREE.DoubleSide</code> on all medical PBR materials. Furthermore, because the raw NIH coordinate space was centered at Y = -120 mm, I encapsulated all meshes and pins inside a unified parent transformation matrix that scales by 2.4 / 145 and offsets by -NIH_CENTER * scale, centering the organ at (0, 0, 0) and perfectly aligning the anatomical pins."
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">Q5: How does the cardiac pulsation deformation synchronize with the ECG waveform?</div>
+    <div class="qa-a">
+      <strong>Answer:</strong> "The ECG monitor tracks the physiological phase &phi; &isin; [0, 1] of the cardiac cycle. At &phi; = 0.32 (the peak of the R wave indicating ventricular depolarization), an event callback triggers an acute 6% radial systolic contraction on the heart mesh and simultaneously fires the S1 'lub' acoustic oscillator. At &phi; = 0.58 (the end of the T wave repolarization), the mesh recoils in diastole and triggers the S2 'dub' sound."
+    </div>
+  </div>
+
+  <div class="footer-note">
+    GestureForge Med 3D &bull; Capstone Project Documentation &bull; Built with Three.js, MediaPipe Tasks Vision, and Vite
+  </div>
+
+</body>
+</html>
