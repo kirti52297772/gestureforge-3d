@@ -9,7 +9,10 @@ import * as THREE from 'three';
 // 1. Scene & Organ Engines
 import { createSceneManager } from './scene/sceneManager.js';
 import { loadCardiacModelSuite, setHeartXRayMode } from './scene/heartLoader.js';
-import { createOrganModel } from './scene/organBuilder.js';
+import { loadBrainModel } from './scene/brainLoader.js';
+import { loadLungsModel } from './scene/lungsLoader.js';
+import { loadKidneyModel } from './scene/kidneyLoader.js';
+import { loadEyeModel } from './scene/eyeLoader.js';
 import { HEART_ANATOMY } from './data/heartAnatomy.js';
 import { ORGANS, getOrganById } from './data/organsData.js';
 
@@ -190,30 +193,63 @@ async function switchOrgan(organId) {
     } else {
       await initCardiacModel();
     }
-  } else {
-    // Build procedural 3D model
-    const newOrgan = createOrganModel(organId);
-    if (newOrgan) {
-      activeOrganGroup = newOrgan;
-      organContainer.add(newOrgan);
+  
+} else {
+  try {
+    // Select the appropriate GLB loader.
+    const organLoaders = {
+      brain: loadBrainModel,
+      lungs: loadLungsModel,
+      kidney: loadKidneyModel,
+      eye: loadEyeModel
+    };
 
-      // Collect dissectible sub-parts
-      const parts = [];
-      newOrgan.traverse(child => {
-        if (child.isMesh && child.userData.explodeDir) {
-          parts.push({
-            object: child,
-            originalPosition: child.position.clone(),
-            explodeVector: child.userData.explodeDir.clone()
-          });
-        }
-      });
-      explodedView.setParts(parts);
+    const selectedLoader = organLoaders[organId];
 
-      // Set anatomy hierarchy data
-      anatomyPanel.setParts(organMeta.parts || []);
+    if (!selectedLoader) {
+      throw new Error(`No loader found for ${organId}`);
     }
+
+    // Load the realistic anatomical model.
+    statusPanel.setEngineStatus(
+      `LOADING ${organId.toUpperCase()}`
+    );
+
+    const newOrgan = await selectedLoader();
+
+    // Prevent an older loading request replacing a newer selection.
+    if (activeOrganId !== organId) return;
+
+    activeOrganGroup = newOrgan;
+    organContainer.add(newOrgan);
+
+    // Collect any GLB parts that have explosion metadata.
+    const parts = [];
+
+    newOrgan.traverse((child) => {
+      if (child.isMesh && child.userData.explodeDir) {
+        parts.push({
+          object: child,
+          originalPosition: child.position.clone(),
+          explodeVector: child.userData.explodeDir.clone()
+        });
+      }
+    });
+
+    explodedView.setParts(parts);
+
+    // Update anatomical hierarchy.
+    anatomyPanel.setParts(organMeta.parts || []);
+
+    statusPanel.setEngineStatus('ONLINE');
+
+  } catch (error) {
+    console.error(`Could not load ${organId}:`, error);
+    activeOrganGroup = null;
+    statusPanel.setEngineStatus('LOAD ERROR');
   }
+}
+
 
   // Update active pill styling
   document.querySelectorAll('.organ-pill').forEach(btn => {
